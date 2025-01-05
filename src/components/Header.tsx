@@ -2,8 +2,8 @@ import React from "react";
 import { theme } from "../theme";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../store/authStore";
-import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
 
 type HeaderProps = {
   isAdmin: boolean;

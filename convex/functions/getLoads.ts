@@ -1,4 +1,3 @@
-// /convex/functions/getLoads.ts
 import { query } from "../_generated/server";
 
 export const getLoads = query(async ({ db }) => {

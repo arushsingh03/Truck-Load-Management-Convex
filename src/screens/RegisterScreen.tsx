@@ -1,9 +1,9 @@
 import { theme } from "../theme";
 import React, { useState } from "react";
-import { Button } from "../components/Button";
-import { View, StyleSheet, TextInput, ScrollView, Text } from "react-native";
 import { useAction } from "convex/react";
+import { Button } from "../components/Button";
 import { api } from "../../convex/_generated/api";
+import { View, StyleSheet, TextInput, ScrollView, Text } from "react-native";     
 
 export const RegisterScreen = ({ navigation }: any) => {
   const [formData, setFormData] = useState({

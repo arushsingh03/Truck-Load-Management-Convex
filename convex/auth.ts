@@ -15,7 +15,6 @@ export const register: any = action({
     async handler(ctx, args) {
         const hashedPassword = await hashPassword(args.password);
 
-        // Here we'll use the hashedPassword when creating the user
         return await ctx.runMutation(api.users.insertUser, {
             ...args,
             password: hashedPassword,

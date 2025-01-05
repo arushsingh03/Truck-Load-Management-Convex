@@ -1,9 +1,9 @@
 import React from "react";
+import dayjs from "dayjs";
 import { theme } from "../theme";
 import { Load } from "../types/types";
 import { View, Text, StyleSheet } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import dayjs from "dayjs";
 
 type LoadCardProps = {
   load: Load;
@@ -63,7 +63,6 @@ export const LoadCard = ({ load }: LoadCardProps) => {
         </View>
       </View>
 
-      {/* Details Section */}
       <View style={styles.detailsContainer}>
         <View style={styles.detailItem}>
           <Text style={styles.labelText}>Weight</Text>
@@ -80,7 +79,6 @@ export const LoadCard = ({ load }: LoadCardProps) => {
         </View>
       </View>
 
-      {/* Contact Section */}
       <View style={styles.contactContainer}>
         <View style={styles.contactItem}>
           <MaterialIcons
