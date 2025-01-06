@@ -11,6 +11,7 @@ import { AdminDashboard } from "../screens/AdminDashboard";
 import { ErrorBoundary } from "../components/ErrorBoundary";
 import { NavigationContainer } from "@react-navigation/native";
 import { EditProfileScreen } from "../screens/EditProfileScreen";
+import { HeaderForScreen } from "../components/HeaderForScreens";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -36,7 +37,7 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="Register"
               component={RegisterScreen}
-              options={{ title: "Register" }}
+              options={{ headerShown: false }}
             />
             <Stack.Screen
               name="AdminDashboard"
@@ -57,17 +58,35 @@ export const AppNavigator = () => {
             <Stack.Screen
               name="AddLoad"
               component={AddLoadScreen}
-              options={{ title: "Add New Load" }}
+              options={({ navigation }) => ({
+                header: () => (
+                  <HeaderForScreen
+                    navigation={navigation}
+                    title="Add New Load"
+                  />
+                ),
+              })}
             />
             <Stack.Screen
               name="Profile"
               component={ProfileScreen}
-              options={{ title: "Profile" }}
+              options={({ navigation }) => ({
+                header: () => (
+                  <HeaderForScreen navigation={navigation} title="Profile" />
+                ),
+              })}
             />
             <Stack.Screen
               name="EditProfile"
               component={EditProfileScreen}
-              options={{ title: "Edit Profile" }}
+              options={({ navigation }) => ({
+                header: () => (
+                  <HeaderForScreen
+                    navigation={navigation}
+                    title="Edit Profile"
+                  />
+                ),
+              })}
             />
           </Stack.Navigator>
         </NavigationContainer>

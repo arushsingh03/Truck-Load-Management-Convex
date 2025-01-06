@@ -1,7 +1,14 @@
 import React from "react";
 import { theme } from "../theme";
 import { MaterialIcons } from "@expo/vector-icons";
-import { TouchableOpacity, Text, StyleSheet, View } from "react-native";
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  View,
+  ViewStyle,
+  TextStyle,
+} from "react-native";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 type ButtonProps = {
@@ -11,6 +18,9 @@ type ButtonProps = {
   iconName?:
     | keyof typeof MaterialIcons.glyphMap
     | keyof typeof MaterialCommunityIcons.glyphMap;
+  style?: ViewStyle;
+  textStyle?: TextStyle;
+  iconStyle?: ViewStyle;
 };
 
 export const Button = ({
@@ -18,6 +28,9 @@ export const Button = ({
   onPress,
   variant = "primary",
   iconName,
+  style,
+  textStyle,
+  iconStyle,
 }: ButtonProps) => {
   const isPrimary = variant === "primary";
   const isSecondary = variant === "secondary";
@@ -34,6 +47,7 @@ export const Button = ({
         isTertiary && styles.tertiaryButton,
         isDanger && styles.dangerButton,
         isOutline && styles.outlineButton,
+        style,
       ]}
       onPress={onPress}
     >
@@ -48,7 +62,7 @@ export const Button = ({
                   ? theme.colors.background
                   : theme.colors.primary
               }
-              style={styles.icon}
+              style={[styles.icon, iconStyle]}
             />
           ) : (
             <MaterialCommunityIcons
@@ -59,7 +73,7 @@ export const Button = ({
                   ? theme.colors.background
                   : theme.colors.primary
               }
-              style={styles.icon}
+              style={[styles.icon, iconStyle]}
             />
           ))}
         <Text
@@ -69,6 +83,7 @@ export const Button = ({
             isTertiary && styles.tertiaryButtonText,
             isOutline && styles.outlineButtonText,
             isDanger && styles.dangerButtonText,
+            textStyle,
           ]}
         >
           {title}
@@ -89,19 +104,24 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     backgroundColor: theme.colors.primary,
+    padding: 12,
   },
   secondaryButton: {
     backgroundColor: theme.colors.secondary,
+    padding: 12,
   },
   tertiaryButton: {
     backgroundColor: theme.colors.tertiary || "transparent",
+    padding: 12,
   },
   dangerButton: {
     backgroundColor: theme.colors.danger || "red",
+    padding: 12,
   },
   outlineButton: {
     backgroundColor: "transparent",
-    borderColor: theme.colors.primary,
+    borderColor: theme.colors.icon,
+    padding: 12,
   },
   contentContainer: {
     flexDirection: "row",
@@ -123,7 +143,7 @@ const styles = StyleSheet.create({
     color: theme.colors.background,
   },
   outlineButtonText: {
-    color: theme.colors.primary,
+    color: theme.colors.icon,
   },
   icon: {
     marginRight: theme.spacing.sm,

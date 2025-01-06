@@ -13,7 +13,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
     weight: "",
     weightUnit: "kg",
     truckLength: "",
-    lengthUnit: "m",
+    lengthUnit: "ft",
     contactNumber: "",
     email: "",
   });
@@ -28,7 +28,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
         weight: parseFloat(formData.weight),
         truckLength: parseFloat(formData.truckLength),
         weightUnit: formData.weightUnit as "kg" | "ton",
-        lengthUnit: formData.lengthUnit as "m" | "ft",
+        lengthUnit: formData.lengthUnit as "ft" | "m",
       });
       navigation.goBack();
     } catch (error: any) {

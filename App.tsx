@@ -1,9 +1,9 @@
 import React from "react";
-import { ConvexProvider, ConvexReactClient } from "convex/react";
-import { AppNavigator } from "./src/navigation/AppNavigator";
-import { View, Text, ActivityIndicator } from "react-native";
 import Constants from "expo-constants";
 import * as SplashScreen from "expo-splash-screen";
+import { AppNavigator } from "./src/navigation/AppNavigator";
+import { View, Text, ActivityIndicator } from "react-native";
+import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 SplashScreen.preventAutoHideAsync();

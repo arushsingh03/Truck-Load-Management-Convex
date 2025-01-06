@@ -36,7 +36,6 @@ export const updateProfile = mutation({
         address: v.string(),
     },
     async handler(ctx, args) {
-        // Check if user exists
         const existingUser = await ctx.db
             .query('users')
             .filter(q => q.eq(q.field('_id'), args.id))
@@ -46,7 +45,6 @@ export const updateProfile = mutation({
             throw new Error('User not found');
         }
 
-        // Update user profile
         await ctx.db.patch(existingUser._id, {
             name: args.name,
             phone: args.phone,
@@ -54,7 +52,6 @@ export const updateProfile = mutation({
             address: args.address,
         });
 
-        // Fetch the updated user
         const updatedUser = await ctx.db
             .query('users')
             .filter(q => q.eq(q.field('_id'), existingUser._id))

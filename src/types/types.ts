@@ -18,4 +18,5 @@ export type Load = {
     contactNumber: string;
     email: string;
     createdAt: string;
+    receiptStorageId: string | null;
 };

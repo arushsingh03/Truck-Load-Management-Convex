@@ -1,10 +1,10 @@
-import { theme } from "../theme";
 import React, { useState } from "react";
 import { useAction } from "convex/react";
 import { Button } from "../components/Button";
 import { useAuthStore } from "../store/authStore";
 import { api } from "../../convex/_generated/api";
-import Entypo from "@expo/vector-icons/Entypo";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import {
   View,
   StyleSheet,
@@ -12,7 +12,10 @@ import {
   Text,
   ImageBackground,
   Image,
+  SafeAreaView,
 } from "react-native";
+
+import { theme } from "../theme";
 
 export const LoginScreen = ({ navigation }: any) => {
   const [phone, setPhone] = useState("");
@@ -38,55 +41,76 @@ export const LoginScreen = ({ navigation }: any) => {
   };
 
   return (
-    <ImageBackground
-      source={require("../../assets/background.jpg")}
-      style={styles.background}
-      resizeMode="cover"
-    >
-      <View style={styles.container}>
-        <View style={styles.card}>
-          <Image
-            source={require("../../assets/logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.sloganline1}>
-            Effortless <Text style={styles.highlightText}>Transport</Text>
-          </Text>{" "}
-          <Text style={styles.slogan}>
-            At Your{" "}
-            <Text style={styles.highlightText}>
-              Fingertips <Entypo name="quote" size={24} color="black" />{" "}
+    <SafeAreaView style={styles.safeArea}>
+      <ImageBackground
+        source={require("../../assets/background.jpg")}
+        style={styles.background}
+        resizeMode="cover"
+      >
+        <View style={styles.container}>
+          <View style={styles.card}>
+            <Image
+              source={require("../../assets/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+            <Text style={styles.sloganline1}>
+              Effortless <Text style={styles.highlightText}>Transport</Text>
             </Text>
-          </Text>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <TextInput
-            style={styles.input}
-            placeholder="Phone Number"
-            value={phone}
-            onChangeText={setPhone}
-            keyboardType="phone-pad"
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Password"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-          <Button title="Login" onPress={handleLogin} />
-          <Button
-            title="Register"
-            onPress={() => navigation.navigate("Register")}
-            variant="secondary"
-          />
+            <Text style={styles.slogan}>
+              At Your <Text style={styles.highlightText}>Fingertips</Text>
+            </Text>
+            {error ? <Text style={styles.error}>{error}</Text> : null}
+            <View style={styles.inputContainer}>
+              <MaterialIcons
+                name="phone"
+                size={24}
+                color={theme.colors.muted}
+                style={styles.icon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Phone Number"
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+              />
+            </View>
+            <View style={styles.inputContainer}>
+              <Ionicons
+                name="lock-closed"
+                size={24}
+                color={theme.colors.muted}
+                style={styles.icon}
+              />
+              <TextInput
+                style={styles.input}
+                placeholder="Password"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+              />
+            </View>
+            <View style={styles.buttonContainer}>
+            <Button title="Login" onPress={handleLogin} variant="primary" />
+            <Button
+              title="Register"
+              onPress={() => navigation.navigate("Register")}
+              variant="outline"
+            />
+            </View>
+          </View>
         </View>
-      </View>
-    </ImageBackground>
+      </ImageBackground>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
   background: {
     flex: 1,
   },
@@ -102,19 +126,17 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   slogan: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: "bold",
     color: theme.colors.secondary,
     textAlign: "center",
     marginBottom: theme.spacing.xl,
-    marginLeft: 22,
   },
   sloganline1: {
     fontSize: 20,
     fontWeight: "bold",
     color: theme.colors.secondary,
     textAlign: "center",
-    marginLeft: 7,
   },
   highlightText: {
     fontWeight: "bold",
@@ -130,12 +152,25 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
-  input: {
+  inputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: 8,
-    padding: theme.spacing.md,
+    padding: 5,
     marginVertical: theme.spacing.sm,
+  },
+  buttonContainer: {
+    marginTop: theme.spacing.md,
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    marginLeft: theme.spacing.md,
+  },
+  icon: {
+    marginRight: theme.spacing.sm,
   },
   error: {
     color: theme.colors.error,

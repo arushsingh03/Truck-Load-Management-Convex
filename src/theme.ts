@@ -15,7 +15,8 @@ export const theme = {
     light: "#F8F9FA",
     dark: "#343A40",
     highlight: "#FFD700",
-    shadow: "rgba(0, 0, 0, 0.2)",
+    shadow: "rgba(0, 0, 0, 0)",
+    icon: "#000000",
   },
   spacing: {
     xs: 4,
