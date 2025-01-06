@@ -9,7 +9,10 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "CONVEX_API_KEY": "dev:pleasant-civet-804|eyJ2MiI6IjBlNWQ4NzZhNDI3YzQwMWE5ZTBlNTQyNTU3NDAzOTVhIn0="
+      }
     },
     "production": {
       "autoIncrement": true

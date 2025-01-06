@@ -16,6 +16,7 @@
       "supportsTablet": true
     },
     "android": {
+      "permissions": ["CAMERA", "LOCATION", "INTERNET", "ACCESS_NETWORK_STATE"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -28,6 +29,10 @@
     "extra": {
       "eas": {
         "projectId": "cee0bee2-f9a6-4452-a0b1-22fb4d43332d"
+      },
+      "convex": {
+        "apiUrl": "https://pleasant-civet-804.convex.cloud",
+        "apiKey": "${CONVEX_DEPLOYMENT}"
       }
     }
   }
