@@ -32,7 +32,7 @@
       },
       "convex": {
         "apiUrl": "https://pleasant-civet-804.convex.cloud",
-        "apiKey": "${CONVEX_DEPLOYMENT}"
+        "apiKey": "dev:pleasant-civet-804"
       }
     }
   }

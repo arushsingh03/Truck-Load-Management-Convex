@@ -6,19 +6,27 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud"
+      }
     },
     "preview": {
       "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
       "env": {
-        "CONVEX_API_KEY": "dev:pleasant-civet-804|eyJ2MiI6IjBlNWQ4NzZhNDI3YzQwMWE5ZTBlNTQyNTU3NDAzOTVhIn0="
+        "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud"
       }
     },
     "production": {
-      "autoIncrement": true
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud"
+      }
     }
-  },
-  "submit": {
-    "production": {}
   }
 }
