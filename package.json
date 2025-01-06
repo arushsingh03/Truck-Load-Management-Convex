@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "start": "yarn start",
+    "android": "yarn expo --android",
+    "ios": "yarn expo --ios",
+    "web": "yarn expo --web"
   },
   "dependencies": {
     "@react-native-community/datetimepicker": "^8.2.0",
