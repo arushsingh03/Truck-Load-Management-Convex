@@ -159,6 +159,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 16,
     color: theme.colors.secondary,
+    padding: theme.spacing.sm,
   },
   textArea: {
     textAlignVertical: "top",
