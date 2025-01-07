@@ -27,7 +27,7 @@ export const getTodayLoads = query({
   async handler(ctx) {
     return ctx.db
       .query('loads')
-      .filter((q) => 
+      .filter((q) =>
         q.eq(q.field('createdAt'), dayjs().format('YYYY-MM-DD'))
       )
       .collect();
@@ -62,5 +62,109 @@ export const getLoads = query({
     }
 
     return query.collect();
+  },
+});
+
+export const generateUploadUrl = mutation({
+  args: {
+    loadId: v.id('loads'),
+  },
+  async handler(ctx, args) {
+    const load = await ctx.db.get(args.loadId);
+    if (!load) {
+      throw new Error('Load not found');
+    }
+    const uploadUrl = await ctx.storage.generateUploadUrl();
+    return {
+      uploadUrl,
+      storageId: uploadUrl.split('token=')[1]
+    };
+  },
+});
+
+export const uploadReceipt = mutation({
+  args: {
+    loadId: v.id('loads'),
+    storageId: v.string(),
+  },
+  async handler(ctx, args) {
+    const load = await ctx.db.get(args.loadId);
+    if (!load) {
+      throw new Error('Load not found');
+    }
+
+    await ctx.db.patch(args.loadId, {
+      receiptStorageId: args.storageId,
+    });
+    return load;
+  },
+});
+
+export const generateDownloadUrl = mutation({
+  args: {
+    storageId: v.string(),
+  },
+  async handler(ctx, args) {
+    try {
+      const actualStorageId = args.storageId.includes('token=')
+        ? args.storageId.split('token=')[1]
+        : args.storageId;
+
+      return await ctx.storage.getUrl(actualStorageId);
+    } catch (error) {
+      console.error('Download URL generation error:', error);
+      throw new Error('Failed to generate download URL');
+    }
+  },
+});
+
+export const deleteLoad = mutation({
+  args: {
+    loadId: v.id('loads'),
+  },
+  async handler(ctx, args) {
+    const load = await ctx.db.get(args.loadId);
+    if (!load) {
+      throw new Error('Load not found');
+    }
+
+    if (load.receiptStorageId) {
+      try {
+        const actualStorageId = load.receiptStorageId.includes('token=')
+          ? load.receiptStorageId.split('token=')[1]
+          : load.receiptStorageId;
+
+        await ctx.storage.delete(actualStorageId);
+      } catch (error) {
+        console.error('Storage deletion error:', error);
+      }
+    }
+
+    await ctx.db.delete(args.loadId);
+  },
+});
+
+export const updateLoad = mutation({
+  args: {
+    loadId: v.id('loads'),
+    currentLocation: v.string(),
+    destinationLocation: v.string(),
+    weight: v.number(),
+    weightUnit: v.union(v.literal('kg'), v.literal('ton')),
+    truckLength: v.number(),
+    lengthUnit: v.union(v.literal('m'), v.literal('ft')),
+    contactNumber: v.string(),
+    email: v.string(),
+  },
+  async handler(ctx, args) {
+    const { loadId, ...updateData } = args;
+    const load = await ctx.db.get(loadId);
+
+    if (!load) {
+      throw new Error('Load not found');
+    }
+
+    await ctx.db.patch(loadId, updateData);
+    return await ctx.db.get(loadId);
   },
 });

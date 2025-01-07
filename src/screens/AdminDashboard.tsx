@@ -19,7 +19,18 @@ export const AdminDashboard = ({ navigation }: any) => {
 
   const loads = useQuery(api.loads.getLoads, searchParams);
 
-  const renderItem = ({ item }: { item: Load }) => <LoadCard load={item} />;
+  const renderItem = ({ item }: { item: Load }) => (
+    <LoadCard
+      load={item}
+      isAdmin={true}
+      onEdit={function (id: string): void {
+        throw new Error("Function not implemented.");
+      }}
+      onDelete={function (id: string): void {
+        throw new Error("Function not implemented.");
+      }}
+    />
+  );
 
   return (
     <View style={styles.container}>

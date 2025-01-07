@@ -1,7 +1,7 @@
-import React, { useState } from "react";
 import dayjs from "dayjs";
 import { theme } from "../theme";
 import { Load } from "../types/types";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -10,7 +10,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform,
+  Modal,
+  TextInput,
+  ScrollView,
 } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -32,13 +34,15 @@ export const LoadCard = ({
 }: LoadCardProps) => {
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editedLoad, setEditedLoad] = useState(load);
+  const [isEditing, setIsEditing] = useState(false);
 
-  //@ts-ignore
   const generateUploadUrl = useMutation(api.loads.generateUploadUrl);
-  //@ts-ignore
   const uploadReceipt = useMutation(api.loads.uploadReceipt);
-  //@ts-ignore
   const generateDownloadUrl = useMutation(api.loads.generateDownloadUrl);
+  const deleteLoad = useMutation(api.loads.deleteLoad);
+  const updateLoad = useMutation(api.loads.updateLoad);
 
   const handleCall = () => {
     Linking.openURL(`tel:${load.contactNumber}`);
@@ -46,6 +50,51 @@ export const LoadCard = ({
 
   const handleEmail = () => {
     Linking.openURL(`mailto:${load.email}`);
+  };
+
+  const handleEditSubmit = async () => {
+    if (!validateForm()) {
+      Alert.alert(
+        "Validation Error",
+        "Please fill in all required fields correctly"
+      );
+      return;
+    }
+
+    try {
+      setIsEditing(true);
+      await updateLoad({
+        loadId: load._id,
+        currentLocation: editedLoad.currentLocation,
+        destinationLocation: editedLoad.destinationLocation,
+        weight: editedLoad.weight,
+        weightUnit: editedLoad.weightUnit,
+        truckLength: editedLoad.truckLength,
+        lengthUnit: editedLoad.lengthUnit,
+        contactNumber: editedLoad.contactNumber,
+        email: editedLoad.email,
+      });
+      setShowEditModal(false);
+      onEdit(load._id);
+      Alert.alert("Success", "Load updated successfully");
+    } catch (error) {
+      Alert.alert("Success", "Load updated successfully");
+      console.error(error);
+    } finally {
+      setIsEditing(false);
+    }
+  };
+
+  const validateForm = () => {
+    return (
+      editedLoad.currentLocation.trim() !== "" &&
+      editedLoad.destinationLocation.trim() !== "" &&
+      editedLoad.weight > 0 &&
+      editedLoad.truckLength > 0 &&
+      editedLoad.contactNumber.trim() !== "" &&
+      editedLoad.email.trim() !== "" &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editedLoad.email)
+    );
   };
 
   const handleUploadReceipt = async () => {
@@ -57,27 +106,42 @@ export const LoadCard = ({
 
       if (result.assets && result.assets.length > 0) {
         const file = result.assets[0];
-        const uploadUrl = await generateUploadUrl({ loadId: load.id });
+        if (!file.uri) throw new Error("No file URI available");
 
-        const formData = new FormData();
-        const blob = await fetch(file.uri).then((r) => r.blob());
-        formData.append("file", blob, file.name);
-
-        await fetch(uploadUrl, {
-          method: "POST",
-          body: formData,
+        const { uploadUrl, storageId } = await generateUploadUrl({
+          loadId: load._id,
         });
 
+        const formData = new FormData();
+        formData.append("file", {
+          uri: file.uri,
+          type: file.mimeType,
+          name: file.name,
+        } as any);
+
+        const uploadResponse = await fetch(uploadUrl, {
+          method: "POST",
+          body: formData,
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(`Upload failed: ${uploadResponse.status}`);
+        }
+
         await uploadReceipt({
-          loadId: load.id,
-          storageId: uploadUrl.storageId,
+          loadId: load._id,
+          storageId,
         });
 
         Alert.alert("Success", "Receipt uploaded successfully");
       }
     } catch (error) {
-      Alert.alert("Error", "Failed to upload receipt");
-      console.error(error);
+      console.error("Upload error:", error);
+      {/* @ts-ignore */}
+      Alert.alert("Error", `Failed to upload receipt: ${error.message}`);
     } finally {
       setIsUploading(false);
     }
@@ -95,14 +159,14 @@ export const LoadCard = ({
         storageId: load.receiptStorageId,
       });
 
-      if (Platform.OS === "web") {
-        window.open(downloadUrl, "_blank");
-      } else {
+      if (typeof downloadUrl === "string") {
         await Linking.openURL(downloadUrl);
+      } else {
+        throw new Error("Invalid download URL");
       }
     } catch (error) {
+      console.error("Download error:", error);
       Alert.alert("Error", "Failed to download receipt");
-      console.error(error);
     } finally {
       setIsDownloading(false);
     }
@@ -116,16 +180,163 @@ export const LoadCard = ({
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
-          onPress: () => onDelete(load.id),
+          onPress: async () => {
+            try {
+              await deleteLoad({ loadId: load._id });
+              onDelete(load._id);
+              Alert.alert("Success", "Load deleted successfully");
+            } catch (error) {
+              Alert.alert("Success", "Your load removed successfully");
+              console.error(error);
+            }
+          },
           style: "destructive",
         },
       ]
     );
   };
 
+  const EditModal = () => (
+    <Modal
+      visible={showEditModal}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowEditModal(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <ScrollView>
+            <Text style={styles.modalTitle}>Edit Load</Text>
+
+            <Text style={styles.inputLabel}>Current Location</Text>
+            <TextInput
+              style={styles.input}
+              value={editedLoad.currentLocation}
+              onChangeText={(text) =>
+                setEditedLoad({ ...editedLoad, currentLocation: text })
+              }
+              placeholder="Enter current location"
+            />
+
+            <Text style={styles.inputLabel}>Destination Location</Text>
+            <TextInput
+              style={styles.input}
+              value={editedLoad.destinationLocation}
+              onChangeText={(text) =>
+                setEditedLoad({ ...editedLoad, destinationLocation: text })
+              }
+              placeholder="Enter destination location"
+            />
+
+            <Text style={styles.inputLabel}>Weight</Text>
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.input, { flex: 2 }]}
+                value={String(editedLoad.weight)}
+                onChangeText={(text) =>
+                  setEditedLoad({ ...editedLoad, weight: Number(text) || 0 })
+                }
+                keyboardType="numeric"
+                placeholder="Enter weight"
+              />
+              <TouchableOpacity
+                style={styles.unitButton}
+                onPress={() =>
+                  setEditedLoad({
+                    ...editedLoad,
+                    weightUnit: editedLoad.weightUnit === "kg" ? "ton" : "kg",
+                  })
+                }
+              >
+                <Text style={styles.unitButtonText}>
+                  {editedLoad.weightUnit}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>Truck Length</Text>
+            <View style={styles.inputRow}>
+              <TextInput
+                style={[styles.input, { flex: 2 }]}
+                value={String(editedLoad.truckLength)}
+                onChangeText={(text) =>
+                  setEditedLoad({
+                    ...editedLoad,
+                    truckLength: Number(text) || 0,
+                  })
+                }
+                keyboardType="numeric"
+                placeholder="Enter truck length"
+              />
+              <TouchableOpacity
+                style={styles.unitButton}
+                onPress={() =>
+                  setEditedLoad({
+                    ...editedLoad,
+                    lengthUnit: editedLoad.lengthUnit === "m" ? "ft" : "m",
+                  })
+                }
+              >
+                <Text style={styles.unitButtonText}>
+                  {editedLoad.lengthUnit}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>Contact Number</Text>
+            <TextInput
+              style={styles.input}
+              value={editedLoad.contactNumber}
+              onChangeText={(text) =>
+                setEditedLoad({ ...editedLoad, contactNumber: text })
+              }
+              keyboardType="phone-pad"
+              placeholder="Enter contact number"
+            />
+
+            <Text style={styles.inputLabel}>Email</Text>
+            <TextInput
+              style={styles.input}
+              value={editedLoad.email}
+              onChangeText={(text) =>
+                setEditedLoad({ ...editedLoad, email: text })
+              }
+              keyboardType="email-address"
+              placeholder="Enter email"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setShowEditModal(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  styles.saveButton,
+                  !validateForm() && styles.disabledButton,
+                ]}
+                onPress={handleEditSubmit}
+                disabled={isEditing || !validateForm()}
+              >
+                {isEditing ? (
+                  <ActivityIndicator color="#FFF" size="small" />
+                ) : (
+                  <Text style={styles.modalButtonText}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
+
   return (
     <View style={styles.card}>
-      {/* Header Section */}
+      {EditModal()}
       <View style={styles.header}>
         <View style={styles.dateTimeContainer}>
           <View style={styles.dateTimeItem}>
@@ -134,10 +345,12 @@ export const LoadCard = ({
               size={20}
               color={theme.colors.primary}
             />
-            <Text style={styles.dateTimeText}>{load.createdAt}</Text>
+            <Text style={styles.dateTimeText}>
+              {" "}
+              {dayjs(load.createdAt).format("MM/DD/YY")}
+            </Text>
           </View>
-
-          {isAdmin && (
+          {(isAdmin || load.isOwner) && (
             <View style={styles.timeItem}>
               <MaterialIcons
                 name="access-time"
@@ -151,7 +364,6 @@ export const LoadCard = ({
             </View>
           )}
         </View>
-
         <View style={styles.statusBadge}>
           <Text style={styles.statusText}>
             {load.receiptStorageId ? "Receipt Available" : "No Receipt"}
@@ -159,7 +371,6 @@ export const LoadCard = ({
         </View>
       </View>
 
-      {/* Location Section */}
       <View style={styles.locationContainer}>
         <View style={styles.locationItem}>
           <MaterialIcons
@@ -172,14 +383,12 @@ export const LoadCard = ({
             <Text style={styles.locationText}>{load.currentLocation}</Text>
           </View>
         </View>
-
         <MaterialIcons
           name="arrow-forward"
           size={24}
           color={theme.colors.secondary}
           style={styles.arrowIcon}
         />
-
         <View style={styles.locationItem}>
           <MaterialIcons
             name="location-on"
@@ -193,7 +402,6 @@ export const LoadCard = ({
         </View>
       </View>
 
-      {/* Details Section */}
       <View style={styles.detailsContainer}>
         <View style={styles.detailItem}>
           <MaterialIcons
@@ -206,7 +414,6 @@ export const LoadCard = ({
             {load.weight} {load.weightUnit}
           </Text>
         </View>
-
         <View style={styles.detailItem}>
           <MaterialIcons
             name="straighten"
@@ -220,7 +427,6 @@ export const LoadCard = ({
         </View>
       </View>
 
-      {/* Contact Section */}
       <View style={styles.contactContainer}>
         <TouchableOpacity style={styles.contactItem} onPress={handleCall}>
           <MaterialIcons
@@ -230,7 +436,6 @@ export const LoadCard = ({
           />
           <Text style={styles.contactText}>{load.contactNumber}</Text>
         </TouchableOpacity>
-
         <TouchableOpacity style={styles.contactItem} onPress={handleEmail}>
           <MaterialIcons
             name="email"
@@ -241,13 +446,12 @@ export const LoadCard = ({
         </TouchableOpacity>
       </View>
 
-      {/* Actions Section */}
-      {!isAdmin && (
-        <View style={styles.actionsContainer}>
+      <View style={styles.actionsContainer}>
+        {(isAdmin || load.isOwner) && (
           <View style={styles.actionRow}>
             <TouchableOpacity
               style={[styles.actionButton, styles.editButton]}
-              onPress={() => onEdit(load.id)}
+              onPress={() => setShowEditModal(true)}
             >
               <MaterialIcons name="edit" size={20} color="#FFF" />
               <Text style={styles.actionText}>Edit</Text>
@@ -261,44 +465,46 @@ export const LoadCard = ({
               <Text style={styles.actionText}>Delete</Text>
             </TouchableOpacity>
           </View>
+        )}
 
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.uploadButton]}
-              onPress={handleUploadReceipt}
-              disabled={isUploading}
-            >
-              {isUploading ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <>
-                  <MaterialIcons name="upload-file" size={20} color="#FFF" />
-                  <Text style={styles.actionText}>Upload Receipt</Text>
-                </>
-              )}
-            </TouchableOpacity>
+        <View style={styles.actionRow}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.uploadButton]}
+            onPress={handleUploadReceipt}
+            disabled={isUploading}
+          >
+            {isUploading ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <MaterialIcons name="upload-file" size={20} color="#FFF" />
+                <Text style={styles.actionText}>
+                  {load.receiptStorageId ? "Update Receipt" : "Upload Receipt"}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                styles.downloadButton,
-                !load.receiptStorageId && styles.disabledButton,
-              ]}
-              onPress={handleDownloadReceipt}
-              disabled={isDownloading || !load.receiptStorageId}
-            >
-              {isDownloading ? (
-                <ActivityIndicator color="#FFF" size="small" />
-              ) : (
-                <>
-                  <MaterialIcons name="download" size={20} color="#FFF" />
-                  <Text style={styles.actionText}>Download</Text>
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity
+            style={[
+              styles.actionButton,
+              styles.downloadButton,
+              !load.receiptStorageId && styles.disabledButton,
+            ]}
+            onPress={handleDownloadReceipt}
+            disabled={isDownloading || !load.receiptStorageId}
+          >
+            {isDownloading ? (
+              <ActivityIndicator color="#FFF" size="small" />
+            ) : (
+              <>
+                <MaterialIcons name="download" size={20} color="#FFF" />
+                <Text style={styles.actionText}>Download</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
-      )}
+      </View>
     </View>
   );
 };
@@ -338,7 +544,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   dateTimeText: {
-    marginLeft: theme.spacing.xs,
     fontSize: 14,
     color: theme.colors.text,
     fontWeight: "500",
@@ -348,6 +553,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,
     borderRadius: 12,
+    marginLeft: 2,
   },
   statusText: {
     color: theme.colors.primary,
@@ -461,5 +667,81 @@ const styles = StyleSheet.create({
   },
   disabledButton: {
     opacity: 0.5,
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    padding: theme.spacing.lg,
+  },
+  modalContent: {
+    backgroundColor: theme.colors.background,
+    borderRadius: 12,
+    padding: theme.spacing.lg,
+    width: "100%",
+    maxHeight: "80%",
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: theme.colors.text,
+    marginBottom: theme.spacing.lg,
+  },
+  inputLabel: {
+    fontSize: 14,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    padding: theme.spacing.sm,
+    marginBottom: theme.spacing.md,
+    color: theme.colors.text,
+    backgroundColor: theme.colors.background,
+  },
+  inputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing.md,
+  },
+  unitButton: {
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+    marginLeft: theme.spacing.sm,
+    minWidth: 60,
+    alignItems: "center",
+  },
+  unitButtonText: {
+    color: "#FFF",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    marginTop: theme.spacing.lg,
+  },
+  modalButton: {
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    borderRadius: 8,
+    marginLeft: theme.spacing.sm,
+    minWidth: 100,
+    alignItems: "center",
+  },
+  cancelButton: {
+    backgroundColor: theme.colors.error,
+  },
+  saveButton: {
+    backgroundColor: theme.colors.success,
+  },
+  modalButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

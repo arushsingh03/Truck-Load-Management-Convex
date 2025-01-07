@@ -113,7 +113,7 @@ export const SearchFilters = ({
 
               <TextInput
                 style={styles.input}
-                placeholder="Search by location"
+                placeholder="Search load..."
                 value={params.location}
                 onChangeText={(text) =>
                   onParamsChange({ ...params, location: text })

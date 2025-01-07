@@ -1,3 +1,5 @@
+import { Id } from "../../convex/_generated/dataModel";
+
 export type User = {
     id: string;
     name: string;
@@ -8,7 +10,7 @@ export type User = {
 };
 
 export type Load = {
-    id: string;
+    _id: Id<'loads'>;
     currentLocation: string;
     destinationLocation: string;
     weight: number;
@@ -18,5 +20,6 @@ export type Load = {
     contactNumber: string;
     email: string;
     createdAt: string;
-    receiptStorageId: string | null;
+    receiptStorageId?: string;
+    isOwner?: boolean;
 };

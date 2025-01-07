@@ -10,7 +10,7 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#f9f8fb"
     },
     "ios": {
       "supportsTablet": true
@@ -19,7 +19,7 @@
       "permissions": ["CAMERA", "LOCATION", "INTERNET", "ACCESS_NETWORK_STATE"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#f9f8fb"
       },
       "package": "com.arushsingh03.ommotors"
     },

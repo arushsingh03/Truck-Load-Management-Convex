@@ -13,13 +13,11 @@ type HeaderProps = {
 export const HeaderForScreen = ({ navigation, title }: HeaderProps) => {
   const setUser = useAuthStore((state) => state.setUser);
 
-  // Get the current route from navigation
   const navigationState = navigation.getState();
   const currentRoute =
     navigationState.routes[navigationState.index]?.name || "";
 
-  console.log("Current Route:", currentRoute); // Log the current route for debugging
-
+  console.log("Current Route:", currentRoute);
   const handleLogout = () => {
     setUser(null);
     navigation.replace("Login");
@@ -37,7 +35,6 @@ export const HeaderForScreen = ({ navigation, title }: HeaderProps) => {
         </View>
 
         <View style={styles.rightSection}>
-          {/* Conditionally render Profile icon */}
           {currentRoute !== "Profile" && (
             <TouchableOpacity
               style={styles.iconButton}
@@ -51,7 +48,6 @@ export const HeaderForScreen = ({ navigation, title }: HeaderProps) => {
             </TouchableOpacity>
           )}
 
-          {/* Conditionally render Chat icon */}
           {currentRoute !== "Chat" && (
             <TouchableOpacity style={styles.iconButton} onPress={handleChat}>
               <MaterialIcons

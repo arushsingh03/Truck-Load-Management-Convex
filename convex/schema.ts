@@ -20,5 +20,7 @@ export default defineSchema({
         contactNumber: v.string(),
         email: v.string(),
         createdAt: v.string(),
+        receiptStorageId: v.optional(v.string()),
+        isOwner: v.optional(v.boolean()), 
     }),
 });

@@ -35,7 +35,18 @@ export const UserDashboard = () => {
     <View style={styles.container}>
       <FlashList
         data={loadsWithId}
-        renderItem={({ item }: { item: Load }) => <LoadCard load={item} />}
+        renderItem={({ item }: { item: Load }) => (
+          <LoadCard
+            load={item}
+            isAdmin={false}
+            onEdit={function (id: string): void {
+              throw new Error("Function not implemented.");
+            }}
+            onDelete={function (id: string): void {
+              throw new Error("Function not implemented.");
+            }}
+          />
+        )}
         estimatedItemSize={200}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
       />

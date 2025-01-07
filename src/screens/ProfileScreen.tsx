@@ -19,7 +19,7 @@ export const ProfileScreen = ({ navigation }: any) => {
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
-        source={require("../../assets/whitebg.jpg")}
+        source={require("../../assets/4861242.jpg")}
         style={styles.background}
         resizeMode="cover"
       >

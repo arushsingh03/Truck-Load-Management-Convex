@@ -1,6 +1,7 @@
 import React from "react";
 import Constants from "expo-constants";
 import * as SplashScreen from "expo-splash-screen";
+import { useAuthStore } from "./src/store/authStore";
 import { AppNavigator } from "./src/navigation/AppNavigator";
 import { View, Text, ActivityIndicator } from "react-native";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
@@ -74,11 +75,15 @@ export default function App() {
   const [convexClient, setConvexClient] =
     React.useState<ConvexReactClient | null>(null);
 
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
+
   React.useEffect(() => {
     async function initialize() {
       try {
         const client = initializeConvexClient();
         setConvexClient(client);
+
+        await initializeAuth();
 
         await SplashScreen.hideAsync();
 
@@ -91,10 +96,13 @@ export default function App() {
         await SplashScreen.hideAsync();
       }
     }
+
     initialize();
 
     return () => {
-      convexClient?.close();
+      if (convexClient) {
+        convexClient.close();
+      }
     };
   }, []);
 

@@ -22,6 +22,7 @@ export const LoginScreen = ({ navigation }: any) => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
+  // @ts-ignore
   const login = useAction(api.auth.login);
   const setUser = useAuthStore((state) => state.setUser);
 
@@ -92,12 +93,12 @@ export const LoginScreen = ({ navigation }: any) => {
               />
             </View>
             <View style={styles.buttonContainer}>
-            <Button title="Login" onPress={handleLogin} variant="primary" />
-            <Button
-              title="Register"
-              onPress={() => navigation.navigate("Register")}
-              variant="outline"
-            />
+              <Button title="Login" onPress={handleLogin} variant="primary" />
+              <Button
+                title="Register"
+                onPress={() => navigation.navigate("Register")}
+                variant="outline"
+              />
             </View>
           </View>
         </View>

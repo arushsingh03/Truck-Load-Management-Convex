@@ -27,9 +27,10 @@ export const RegisterScreen = ({ navigation }: any) => {
     address: "",
   });
   const [error, setError] = useState("");
-  const [showPassword, setShowPassword] = useState(false); // New state for password visibility
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false); // New state for confirm password visibility
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  {/* @ts-ignore */}
   const register = useAction(api.auth.register);
 
   const handleRegister = async () => {
@@ -137,13 +138,13 @@ export const RegisterScreen = ({ navigation }: any) => {
                 onChangeText={(value) =>
                   setFormData({ ...formData, password: value })
                 }
-                secureTextEntry={!showPassword} // Toggle password visibility
+                secureTextEntry={!showPassword}
               />
               <Ionicons
                 name={showPassword ? "eye-off" : "eye"}
                 size={20}
                 color={theme.colors.muted}
-                onPress={() => setShowPassword(!showPassword)} // Toggle password visibility
+                onPress={() => setShowPassword(!showPassword)}
                 style={styles.eyeIcon}
               />
             </View>
@@ -162,13 +163,13 @@ export const RegisterScreen = ({ navigation }: any) => {
                 onChangeText={(value) =>
                   setFormData({ ...formData, confirmPassword: value })
                 }
-                secureTextEntry={!showConfirmPassword} // Toggle confirm password visibility
+                secureTextEntry={!showConfirmPassword}
               />
               <Ionicons
                 name={showConfirmPassword ? "eye-off" : "eye"}
                 size={20}
                 color={theme.colors.muted}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)} // Toggle confirm password visibility
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 style={styles.eyeIcon}
               />
             </View>
@@ -192,8 +193,16 @@ export const RegisterScreen = ({ navigation }: any) => {
               />
             </View>
 
-            <Button title="Register" onPress={handleRegister} variant="primary" />
-            <Button title="Go Back" onPress={() => navigation.navigate("Login")} variant="outline"></Button>
+            <Button
+              title="Register"
+              onPress={handleRegister}
+              variant="primary"
+            />
+            <Button
+              title="Go Back"
+              onPress={() => navigation.navigate("Login")}
+              variant="outline"
+            ></Button>
           </View>
         </ScrollView>
       </ImageBackground>

@@ -30,18 +30,21 @@ export const EditProfileScreen = ({ navigation }: any) => {
 
   const handleSubmit = async () => {
     try {
-      const updatedUser = await updateProfile({ ...formData, id: user?.id });
-      setUser(updatedUser);
-      navigation.goBack();
+      if (user?.id) {
+        const updatedUser = await updateProfile({ ...formData, id: user.id });
+        setUser(updatedUser);
+        navigation.goBack();
+      } else {
+        setError("User ID is missing");
+      }
     } catch (error: any) {
       setError(error.message);
     }
   };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
-        source={require("../../assets/whitebg.jpg")}
+        source={require("../../assets/4861242.jpg")}
         style={styles.background}
         resizeMode="cover"
       >
