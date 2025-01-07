@@ -18,6 +18,7 @@
     "bcryptjs": "^2.4.3",
     "convex": "^1.17.4",
     "dayjs": "^1.11.13",
+    "eas-cli": "^14.3.0",
     "expo": "~52.0.23",
     "expo-document-picker": "^13.0.1",
     "expo-secure-store": "^14.0.0",
