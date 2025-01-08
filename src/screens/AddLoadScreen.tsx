@@ -17,7 +17,6 @@ import {
   Platform,
 } from "react-native";
 
-// Configure notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -26,7 +25,6 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Request permissions
 async function registerForPushNotificationsAsync() {
   let token;
 
@@ -45,7 +43,6 @@ async function registerForPushNotificationsAsync() {
       return;
     }
 
-    // Fix for Constants.expoConfig possibly being null
     const projectId = Constants.expoConfig?.extra?.eas?.projectId;
     if (!projectId) {
       throw new Error("Project ID is not configured");
@@ -116,7 +113,6 @@ export const AddLoadScreen = ({ navigation }: any) => {
 
   const handleSubmit = async () => {
     try {
-      // Validate form data
       if (!formData.currentLocation || !formData.destinationLocation) {
         setError("Location fields are required");
         return;
@@ -138,10 +134,9 @@ export const AddLoadScreen = ({ navigation }: any) => {
         truckLength: parseFloat(formData.truckLength),
         weightUnit: formData.weightUnit as "kg" | "ton",
         lengthUnit: formData.lengthUnit as "ft" | "m",
-        staffContactNumber: ""
+        staffContactNumber: formData.staffContactNumber,
       });
 
-      // Show notification after successful load addition
       await scheduleNotification();
 
       navigation.goBack();
@@ -150,7 +145,6 @@ export const AddLoadScreen = ({ navigation }: any) => {
     }
   };
 
-  // Rest of your component remains the same...
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
@@ -163,7 +157,6 @@ export const AddLoadScreen = ({ navigation }: any) => {
             <Text style={styles.header}>Add Load</Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            {/* Your existing JSX remains the same... */}
             <View style={styles.formGroup}>
               <TextInput
                 style={styles.input}
@@ -263,7 +256,6 @@ export const AddLoadScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
-  // Your existing styles remain the same...
   safeArea: {
     flex: 1,
   },

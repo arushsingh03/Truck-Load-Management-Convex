@@ -103,7 +103,6 @@ export const resetPassword = action({
         ctx,
         args
     ): Promise<ResetPasswordResponse> => {
-        // Find the user
         const user = await ctx.runQuery(api.users.getUser, {
             phone: args.phone
         });
@@ -112,10 +111,8 @@ export const resetPassword = action({
             throw new Error("User not found with this phone number");
         }
 
-        // Hash the new password
         const hashedPassword = await hashPassword(args.newPassword);
 
-        // Update the password using a mutation
         const updatedUser = await ctx.runMutation(api.users.updatePassword, {
             userId: user._id,
             hashedPassword: hashedPassword

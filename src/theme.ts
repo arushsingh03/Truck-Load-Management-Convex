@@ -15,8 +15,10 @@ export const theme = {
     light: "#F8F9FA",
     dark: "#343A40",
     highlight: "#FFD700",
-    shadow: "rgba(0, 0, 0, 0)",
+    shadow: "rgba(0, 0, 0, 0.06)",
     icon: "#000000",
+    separator: '#424242',
+    card: '#2E2E2E',
   },
   spacing: {
     xs: 4,

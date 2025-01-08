@@ -81,13 +81,11 @@ export const generateUploadUrl = mutation({
       throw new Error('Load not found');
     }
 
-    // Get the URL string from storage
     const url = await ctx.storage.generateUploadUrl();
 
-    // Return the URL and extract a storage ID from it
     return {
       uploadUrl: url,
-      storageId: url.split('/').pop() || '', // Extract the last part of the URL as storageId
+      storageId: url.split('/').pop() || '', 
     };
   },
 });

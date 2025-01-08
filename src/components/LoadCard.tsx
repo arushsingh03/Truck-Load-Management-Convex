@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { theme } from "../theme";
 import { Load } from "../types/types";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,9 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  LayoutAnimation,
+  Platform,
+  UIManager,
 } from "react-native";
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -20,19 +23,26 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { Id } from "../../convex/_generated/dataModel";
 
-type LoadCardProps = {
+if (Platform.OS === "android") {
+  if (UIManager.setLayoutAnimationEnabledExperimental) {
+    UIManager.setLayoutAnimationEnabledExperimental(true);
+  }
+}
+
+interface LoadCardProps {
   load: Load;
   isAdmin: boolean;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
-};
+}
 
-export const LoadCard = ({
+export const LoadCard: React.FC<LoadCardProps> = ({
   load,
   isAdmin,
   onEdit,
   onDelete,
-}: LoadCardProps) => {
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -45,15 +55,20 @@ export const LoadCard = ({
   const deleteLoad = useMutation(api.loads.deleteLoad);
   const updateLoad = useMutation(api.loads.updateLoad);
 
-  const handleCall = () => {
+  const toggleExpand = useCallback(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+    setIsExpanded(!isExpanded);
+  }, [isExpanded]);
+
+  const handleCall = useCallback(() => {
     Linking.openURL(`tel:${load.contactNumber}`);
-  };
+  }, [load.contactNumber]);
 
-  const handleStaffCall = () => {
+  const handleStaffCall = useCallback(() => {
     Linking.openURL(`tel:${load.staffContactNumber}`);
-  };
+  }, [load.staffContactNumber]);
 
-  const validateForm = () => {
+  const validateForm = useCallback(() => {
     const isValidContactNumber = editedLoad.contactNumber.trim() !== "";
     const isValidStaffContactNumber =
       editedLoad.staffContactNumber.trim() !== "";
@@ -69,40 +84,7 @@ export const LoadCard = ({
       isValidContactNumber &&
       isValidStaffContactNumber
     );
-  };
-
-  const handleEditSubmit = async () => {
-    if (!validateForm()) {
-      Alert.alert(
-        "Validation Error",
-        "Please fill in all required fields correctly"
-      );
-      return;
-    }
-
-    try {
-      setIsEditing(true);
-      await updateLoad({
-        loadId: load._id,
-        currentLocation: editedLoad.currentLocation,
-        destinationLocation: editedLoad.destinationLocation,
-        weight: editedLoad.weight,
-        weightUnit: editedLoad.weightUnit,
-        truckLength: editedLoad.truckLength,
-        lengthUnit: editedLoad.lengthUnit,
-        contactNumber: editedLoad.contactNumber,
-        staffContactNumber: editedLoad.staffContactNumber,
-      });
-      setShowEditModal(false);
-      onEdit(load._id);
-      Alert.alert("Success", "Load updated successfully");
-    } catch (error) {
-      Alert.alert("Error", "Failed to update load");
-      console.error(error);
-    } finally {
-      setIsEditing(false);
-    }
-  };
+  }, [editedLoad]);
 
   const handleUploadReceipt = async () => {
     try {
@@ -152,11 +134,7 @@ export const LoadCard = ({
       }
     } catch (error) {
       console.error("Upload error:", error);
-      Alert.alert(
-        "Error",
-        // @ts-ignore
-        `Failed to upload receipt: ${error.message}`
-      );
+      Alert.alert("Error", "Failed to upload receipt");
     } finally {
       setIsUploading(false);
     }
@@ -187,7 +165,7 @@ export const LoadCard = ({
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
     Alert.alert(
       "Confirm Delete",
       "Are you sure you want to delete this load?",
@@ -201,15 +179,121 @@ export const LoadCard = ({
               onDelete(load._id);
               Alert.alert("Success", "Load deleted successfully");
             } catch (error) {
-              Alert.alert("Error", "Failed to delete load");
               console.error(error);
+              Alert.alert("Error", "Failed to delete load");
             }
           },
           style: "destructive",
         },
       ]
     );
+  }, [load._id, deleteLoad, onDelete]);
+
+  const handleEditSubmit = async () => {
+    if (!validateForm()) {
+      Alert.alert(
+        "Validation Error",
+        "Please fill in all required fields correctly"
+      );
+      return;
+    }
+
+    try {
+      setIsEditing(true);
+      await updateLoad({
+        loadId: load._id,
+        currentLocation: editedLoad.currentLocation,
+        destinationLocation: editedLoad.destinationLocation,
+        weight: editedLoad.weight,
+        weightUnit: editedLoad.weightUnit,
+        truckLength: editedLoad.truckLength,
+        lengthUnit: editedLoad.lengthUnit,
+        contactNumber: editedLoad.contactNumber,
+        staffContactNumber: editedLoad.staffContactNumber,
+      });
+      setShowEditModal(false);
+      onEdit(load._id);
+      Alert.alert("Success", "Load updated successfully");
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to update load");
+    } finally {
+      setIsEditing(false);
+    }
   };
+
+  const PreviewContent = () => (
+    <View style={styles.previewContent}>
+      <View style={styles.header}>
+        <View style={styles.dateTimeContainer}>
+          <View style={styles.dateTimeItem}>
+            <MaterialIcons
+              name="event"
+              size={20}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.dateTimeText}>
+              {dayjs(load.createdAt).format("MM/DD/YY")}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={[
+            styles.statusBadge,
+            !load.receiptStorageId && styles.noReceiptBadge,
+          ]}
+          onPress={load.receiptStorageId ? handleDownloadReceipt : undefined}
+        >
+          <MaterialIcons
+            name={load.receiptStorageId ? "download" : "receipt-long"}
+            size={16}
+            color={
+              load.receiptStorageId ? theme.colors.primary : theme.colors.error
+            }
+          />
+          <Text
+            style={[
+              styles.statusText,
+              !load.receiptStorageId && styles.noReceiptText,
+            ]}
+          >
+            {load.receiptStorageId ? "Download" : "No Receipt"}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.locationContainer}>
+        <View style={styles.locationItem}>
+          <MaterialIcons
+            name="location-on"
+            size={24}
+            color={theme.colors.primary}
+          />
+          <View style={styles.locationTextContainer}>
+            <Text style={styles.labelText}>From</Text>
+            <Text style={styles.locationText}>{load.currentLocation}</Text>
+          </View>
+        </View>
+        <MaterialIcons
+          name="arrow-forward"
+          size={24}
+          color={theme.colors.secondary}
+          style={styles.arrowIcon}
+        />
+        <View style={styles.locationItem}>
+          <MaterialIcons
+            name="location-on"
+            size={24}
+            color={theme.colors.primary}
+          />
+          <View style={styles.locationTextContainer}>
+            <Text style={styles.labelText}>To</Text>
+            <Text style={styles.locationText}>{load.destinationLocation}</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
 
   const EditModal = () => (
     <Modal
@@ -314,7 +398,7 @@ export const LoadCard = ({
               placeholder="Enter contact number"
             />
 
-            <Text style={styles.inputLabel}>Stack Contact Details</Text>
+            <Text style={styles.inputLabel}>Staff Contact Number</Text>
             <TextInput
               style={styles.input}
               value={editedLoad.staffContactNumber}
@@ -355,196 +439,137 @@ export const LoadCard = ({
   );
 
   return (
-    <View style={styles.card}>
-      {EditModal()}
-      <View style={styles.header}>
-        <View style={styles.dateTimeContainer}>
-          <View style={styles.dateTimeItem}>
-            <MaterialIcons
-              name="event"
-              size={20}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.dateTimeText}>
-              {dayjs(load.createdAt).format("MM/DD/YY")}
-            </Text>
-          </View>
-          {(isAdmin || load.isOwner) && (
-            <View style={styles.timeItem}>
-              <MaterialIcons
-                name="access-time"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.dateTimeText}>
-                {/* @ts-ignore */}
-                {dayjs(load._creationTime).format("hh:mm A")}
-              </Text>
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={[styles.card, !isExpanded && styles.cardCollapsed]}
+        onPress={toggleExpand}
+        activeOpacity={0.7}
+      >
+        <PreviewContent />
+        {isExpanded && (
+          <View style={styles.expandedContent}>
+            <View style={styles.detailsContainer}>
+              <View style={styles.detailItem}>
+                <MaterialIcons
+                  name="local-shipping"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.labelText}>Weight</Text>
+                <Text style={styles.valueText}>
+                  {load.weight} {load.weightUnit}
+                </Text>
+              </View>
+              <View style={styles.detailItem}>
+                <MaterialIcons
+                  name="straighten"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.labelText}>Truck Length</Text>
+                <Text style={styles.valueText}>
+                  {load.truckLength} {load.lengthUnit}
+                </Text>
+              </View>
             </View>
-          )}
-        </View>
-        <TouchableOpacity
-          style={[
-            styles.statusBadge,
-            !load.receiptStorageId && styles.noReceiptBadge,
-          ]}
-          onPress={load.receiptStorageId ? handleDownloadReceipt : undefined}
-          disabled={!load.receiptStorageId || isDownloading}
-        >
-          {isDownloading ? (
-            <ActivityIndicator size="small" color={theme.colors.primary} />
-          ) : (
-            <>
-              <MaterialIcons
-                name={load.receiptStorageId ? "download" : "receipt-long"}
-                size={16}
-                color={
-                  load.receiptStorageId
-                    ? theme.colors.primary
-                    : theme.colors.error
-                }
-              />
-              <Text
-                style={[
-                  styles.statusText,
-                  !load.receiptStorageId && styles.noReceiptText,
-                ]}
+
+            <View style={styles.contactContainer}>
+              <TouchableOpacity style={styles.contactItem} onPress={handleCall}>
+                <MaterialIcons
+                  name="phone"
+                  size={20}
+                  color={theme.colors.secondary}
+                />
+                <Text style={styles.contactText}>
+                  Phone: {load.contactNumber}
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.contactItem}
+                onPress={handleStaffCall}
               >
-                {load.receiptStorageId ? "Download" : "No Receipt"}
-              </Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
+                <MaterialIcons
+                  name="phone"
+                  size={20}
+                  color={theme.colors.secondary}
+                />
+                <Text style={styles.contactText}>
+                  Staff: {load.staffContactNumber}
+                </Text>
+              </TouchableOpacity>
+            </View>
 
-      <View style={styles.locationContainer}>
-        <View style={styles.locationItem}>
-          <MaterialIcons
-            name="location-on"
-            size={24}
-            color={theme.colors.primary}
-          />
-          <View style={styles.locationTextContainer}>
-            <Text style={styles.labelText}>From</Text>
-            <Text style={styles.locationText}>{load.currentLocation}</Text>
-          </View>
-        </View>
-        <MaterialIcons
-          name="arrow-forward"
-          size={24}
-          color={theme.colors.secondary}
-          style={styles.arrowIcon}
-        />
-        <View style={styles.locationItem}>
-          <MaterialIcons
-            name="location-on"
-            size={24}
-            color={theme.colors.primary}
-          />
-          <View style={styles.locationTextContainer}>
-            <Text style={styles.labelText}>To</Text>
-            <Text style={styles.locationText}>{load.destinationLocation}</Text>
-          </View>
-        </View>
-      </View>
+            <View style={styles.actionsContainer}>
+              {(isAdmin || load.isOwner) && (
+                <View style={styles.actionRow}>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.editButton]}
+                    onPress={() => setShowEditModal(true)}
+                  >
+                    <MaterialIcons name="edit" size={20} color="#FFF" />
+                    <Text style={styles.actionText}>Edit</Text>
+                  </TouchableOpacity>
 
-      <View style={styles.detailsContainer}>
-        <View style={styles.detailItem}>
-          <MaterialIcons
-            name="local-shipping"
-            size={24}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.labelText}>Weight</Text>
-          <Text style={styles.valueText}>
-            {load.weight} {load.weightUnit}
-          </Text>
-        </View>
-        <View style={styles.detailItem}>
-          <MaterialIcons
-            name="straighten"
-            size={24}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.labelText}>Truck Length</Text>
-          <Text style={styles.valueText}>
-            {load.truckLength} {load.lengthUnit}
-          </Text>
-        </View>
-      </View>
+                  <TouchableOpacity
+                    style={[styles.actionButton, styles.deleteButton]}
+                    onPress={handleDelete}
+                  >
+                    <MaterialIcons name="delete" size={20} color="#FFF" />
+                    <Text style={styles.actionText}>Delete</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
 
-      <View style={styles.contactContainer}>
-        <TouchableOpacity style={styles.contactItem} onPress={handleCall}>
-          <MaterialIcons
-            name="phone"
-            size={20}
-            color={theme.colors.secondary}
-          />
-          <Text style={styles.contactText}>Driver: {load.contactNumber}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.contactItem} onPress={handleStaffCall}>
-          <MaterialIcons
-            name="phone"
-            size={20}
-            color={theme.colors.secondary}
-          />
-          <Text style={styles.contactText}>
-            Staff: {load.staffContactNumber}
-          </Text>
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.actionsContainer}>
-        {(isAdmin || load.isOwner) && (
-          <View style={styles.actionRow}>
-            <TouchableOpacity
-              style={[styles.actionButton, styles.editButton]}
-              onPress={() => setShowEditModal(true)}
-            >
-              <MaterialIcons name="edit" size={20} color="#FFF" />
-              <Text style={styles.actionText}>Edit</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, styles.deleteButton]}
-              onPress={handleDelete}
-            >
-              <MaterialIcons name="delete" size={20} color="#FFF" />
-              <Text style={styles.actionText}>Delete</Text>
-            </TouchableOpacity>
+              {!(isAdmin || load.isOwner) && (
+                <TouchableOpacity
+                  style={[styles.actionButton, styles.uploadButton]}
+                  onPress={handleUploadReceipt}
+                  disabled={isUploading}
+                >
+                  {isUploading ? (
+                    <ActivityIndicator color="#FFF" size="small" />
+                  ) : (
+                    <>
+                      <MaterialIcons
+                        name="upload-file"
+                        size={20}
+                        color="#FFF"
+                      />
+                      <Text style={styles.actionText}>
+                        {load.receiptStorageId
+                          ? "Update Receipt"
+                          : "Upload Receipt"}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         )}
 
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.uploadButton]}
-            onPress={handleUploadReceipt}
-            disabled={isUploading}
-          >
-            {isUploading ? (
-              <ActivityIndicator color="#FFF" size="small" />
-            ) : (
-              <>
-                <MaterialIcons name="upload-file" size={20} color="#FFF" />
-                <Text style={styles.actionText}>
-                  {load.receiptStorageId ? "Update Receipt" : "Upload Receipt"}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+        <MaterialIcons
+          name={isExpanded ? "expand-less" : "expand-more"}
+          size={24}
+          color={theme.colors.primary}
+          style={styles.expandIcon}
+        />
+      </TouchableOpacity>
+
+      {showEditModal && <EditModal />}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    marginHorizontal: theme.spacing.md,
+    marginVertical: theme.spacing.sm,
+  },
   card: {
     backgroundColor: theme.colors.background,
     borderRadius: 12,
-    padding: theme.spacing.lg,
-    marginHorizontal: theme.spacing.md,
-    marginVertical: theme.spacing.sm,
+    padding: theme.spacing.md,
     borderWidth: 1,
     borderColor: theme.colors.border,
     shadowColor: "#000",
@@ -553,11 +578,23 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
+  cardCollapsed: {
+    paddingBottom: theme.spacing.sm,
+  },
+  previewContent: {
+    marginBottom: theme.spacing.xs,
+  },
+  expandedContent: {
+    marginTop: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    paddingTop: theme.spacing.md,
+  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   dateTimeContainer: {
     flexDirection: "row",
@@ -568,14 +605,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: theme.spacing.md,
   },
-  timeItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
   dateTimeText: {
     fontSize: 14,
     color: theme.colors.text,
-    fontWeight: "500",
+    marginLeft: theme.spacing.xs,
   },
   statusBadge: {
     flexDirection: "row",
@@ -584,7 +617,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,
     borderRadius: 12,
-    marginLeft: 2,
   },
   noReceiptBadge: {
     backgroundColor: theme.colors.error + "20",
@@ -602,11 +634,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginVertical: theme.spacing.md,
-    paddingVertical: theme.spacing.md,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: theme.colors.border,
+    marginVertical: theme.spacing.xs,
   },
   locationItem: {
     flex: 1,
@@ -615,9 +643,14 @@ const styles = StyleSheet.create({
   },
   locationTextContainer: {
     marginLeft: theme.spacing.xs,
+    flex: 1,
   },
   arrowIcon: {
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.sm,
+  },
+  expandIcon: {
+    alignSelf: "center",
+    marginTop: theme.spacing.xs,
   },
   labelText: {
     fontSize: 12,
@@ -625,14 +658,14 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   locationText: {
-    fontSize: 16,
+    fontSize: 14,
     color: theme.colors.text,
-    fontWeight: "600",
+    fontWeight: "500",
   },
   detailsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginVertical: theme.spacing.md,
+    marginBottom: theme.spacing.md,
   },
   detailItem: {
     alignItems: "center",
@@ -644,12 +677,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   contactContainer: {
-    flexDirection: "column",
-    justifyContent: "space-around",
-    paddingVertical: theme.spacing.md,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
   },
   contactItem: {
     flexDirection: "row",
@@ -659,7 +687,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    margin: 5,
+    marginBottom: theme.spacing.xs,
   },
   contactText: {
     marginLeft: theme.spacing.xs,
@@ -667,12 +695,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   actionsContainer: {
-    marginTop: theme.spacing.md,
+    gap: theme.spacing.sm,
   },
   actionRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: theme.spacing.sm,
+    gap: theme.spacing.sm,
   },
   actionButton: {
     flex: 1,
@@ -680,10 +707,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
-    paddingHorizontal: 16,
     borderRadius: 8,
-    marginHorizontal: 4,
-    elevation: 2,
   },
   actionText: {
     marginLeft: 8,
@@ -699,9 +723,6 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     backgroundColor: theme.colors.success,
-  },
-  disabledButton: {
-    opacity: 0.5,
   },
   modalContainer: {
     flex: 1,
@@ -735,18 +756,17 @@ const styles = StyleSheet.create({
     padding: theme.spacing.sm,
     marginBottom: theme.spacing.md,
     color: theme.colors.text,
-    backgroundColor: theme.colors.background,
   },
   inputRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: theme.spacing.sm,
     marginBottom: theme.spacing.md,
   },
   unitButton: {
     backgroundColor: theme.colors.primary,
     padding: theme.spacing.sm,
     borderRadius: 8,
-    marginLeft: theme.spacing.sm,
     minWidth: 60,
     alignItems: "center",
   },
@@ -758,13 +778,13 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: "row",
     justifyContent: "flex-end",
+    gap: theme.spacing.sm,
     marginTop: theme.spacing.lg,
   },
   modalButton: {
     paddingVertical: theme.spacing.sm,
     paddingHorizontal: theme.spacing.lg,
     borderRadius: 8,
-    marginLeft: theme.spacing.sm,
     minWidth: 100,
     alignItems: "center",
   },
@@ -773,6 +793,9 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: theme.colors.success,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   modalButtonText: {
     color: "#FFF",

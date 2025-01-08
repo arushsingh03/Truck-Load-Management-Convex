@@ -97,6 +97,8 @@ export const updateProfile = mutation({
 });
 
 
+
+
 export const updatePassword = mutation({
     args: {
         userId: v.id("users"),
@@ -104,7 +106,7 @@ export const updatePassword = mutation({
     },
     handler: async (ctx, args) => {
         const user = await ctx.db.get(args.userId);
-        
+
         if (!user) {
             throw new Error("User not found");
         }
@@ -115,4 +117,95 @@ export const updatePassword = mutation({
 
         return await ctx.db.get(args.userId);
     }
+});
+
+export const getAllUsers = query({
+    args: {},
+    async handler(ctx) {
+        const users = await ctx.db
+            .query("users")
+            .filter((q) => q.neq(q.field("userType"), "admin"))
+            .collect();
+
+        return users.map((user) => ({
+            id: user._id,
+            name: user.name,
+            phone: user.phone,
+            transportName: user.transportName,
+            address: user.address,
+            userType: user.userType,
+            isAdmin: user.isAdmin,
+            isApproved: user.isApproved,
+            documentStorageId: user.documentStorageId,
+            createdAt: user.createdAt
+        }));
+    },
+});
+
+
+export const toggleUserApproval = mutation({
+    args: {
+        userId: v.id("users"),
+        isApproved: v.boolean()
+    },
+    async handler(ctx, args) {
+        const user = await ctx.db.get(args.userId);
+
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        await ctx.db.patch(args.userId, {
+            isApproved: args.isApproved
+        });
+
+        return await ctx.db.get(args.userId);
+    }
+});
+
+export const generateUploadUrl = mutation({
+    args: {
+        userId: v.id("users"),
+    },
+    async handler(ctx, args) {
+        const user = await ctx.db.get(args.userId);
+        if (!user) throw new Error("User not found");
+
+        const uploadUrl = await ctx.storage.generateUploadUrl();
+        return uploadUrl;
+    },
+});
+
+export const updateUserDocument = mutation({
+    args: {
+        userId: v.id("users"),
+        storageId: v.string(),
+    },
+    async handler(ctx, args) {
+        const user = await ctx.db.get(args.userId);
+        if (!user) throw new Error("User not found");
+
+        await ctx.db.patch(args.userId, {
+            documentStorageId: args.storageId,
+        });
+
+        return await ctx.db.get(args.userId);
+    },
+});
+
+export const getDocumentUrl = query({
+    args: {
+        storageId: v.optional(v.string())
+    },
+    async handler(ctx, args) {
+        if (!args.storageId) return null;
+
+        try {
+            const url = await ctx.storage.getUrl(args.storageId);
+            return url;
+        } catch (error) {
+            console.error("Error getting document URL:", error);
+            return null;
+        }
+    },
 });

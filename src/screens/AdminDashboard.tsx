@@ -34,12 +34,19 @@ export const AdminDashboard = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
+      <View style={styles.headerButtons}>
+        <Button
+          title="Add Load"
+          onPress={() => navigation.navigate("AddLoad")}
+          iconName="truck-plus"
+        />
+        <Button
+          title="Manage Users"
+          onPress={() => navigation.navigate("UserManagement")}
+          iconName="account"
+        />
+      </View>
       <SearchFilters params={searchParams} onParamsChange={setSearchParams} />
-      <Button
-        title="Add Load"
-        onPress={() => navigation.navigate("AddLoad")}
-        iconName="truck-plus"
-      />
       <View style={styles.listContainer}>
         <FlashList
           data={loads?.map((load) => ({ ...load, id: load._id }))}
@@ -51,11 +58,17 @@ export const AdminDashboard = ({ navigation }: any) => {
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: theme.colors.background,
     padding: theme.spacing.md,
+  },
+  headerButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.md,
   },
   listContainer: {
     flex: 1,

@@ -30,7 +30,6 @@ export const ResetPasswordScreen = ({
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Change this from useMutation to useAction
   const resetPassword = useAction(api.auth.resetPassword);
 
   const handleSubmit = async () => {
