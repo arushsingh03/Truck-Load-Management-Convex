@@ -236,6 +236,19 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               {dayjs(load.createdAt).format("MM/DD/YY")}
             </Text>
           </View>
+          {(isAdmin || load.isOwner) && (
+            <View style={styles.dateTimeItem}>
+              <MaterialIcons
+                name="timer"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.dateTimeText}>
+                {/* @ts-ignore */}
+                {dayjs(load._creationTime).format("h:mm A")}
+              </Text>
+            </View>
+          )}{" "}
         </View>
         <TouchableOpacity
           style={[
@@ -277,7 +290,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
         <MaterialIcons
           name="arrow-forward"
           size={24}
-          color={theme.colors.secondary}
+          color={theme.colors.primary}
           style={styles.arrowIcon}
         />
         <View style={styles.locationItem}>
@@ -481,7 +494,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                   color={theme.colors.secondary}
                 />
                 <Text style={styles.contactText}>
-                  Phone: {load.contactNumber}
+                  Driver: {load.contactNumber}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -647,6 +660,7 @@ const styles = StyleSheet.create({
   },
   arrowIcon: {
     marginHorizontal: theme.spacing.sm,
+    paddingRight: 25,
   },
   expandIcon: {
     alignSelf: "center",
@@ -681,13 +695,14 @@ const styles = StyleSheet.create({
   },
   contactItem: {
     flexDirection: "row",
-    alignItems: "center",
+    justifyContent: "center",
     padding: theme.spacing.sm,
     backgroundColor: theme.colors.background,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    marginBottom: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
+    width: "100%",
   },
   contactText: {
     marginLeft: theme.spacing.xs,

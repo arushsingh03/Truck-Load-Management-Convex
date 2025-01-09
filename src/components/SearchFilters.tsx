@@ -11,6 +11,7 @@ import {
   Modal,
   TouchableOpacity,
   Text,
+  ViewStyle,
 } from "react-native";
 
 type SearchFiltersProps = {
@@ -37,9 +38,9 @@ export const SearchFilters = ({
   return (
     <View>
       <Button
-        title="Filters"
+        title=""
         onPress={() => setIsVisible(true)}
-        variant="secondary"
+        variant="tertiary"
         iconName="filter-alt"
       />
 

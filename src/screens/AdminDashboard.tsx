@@ -35,20 +35,23 @@ export const AdminDashboard = ({ navigation }: any) => {
   return (
     <View style={styles.container}>
       <View style={styles.headerButtons}>
+        <SearchFilters params={searchParams} onParamsChange={setSearchParams} />
         <Button
           title="Add Load"
           onPress={() => navigation.navigate("AddLoad")}
           iconName="truck-plus"
+          style={styles.button}
         />
         <Button
           title="Manage Users"
           onPress={() => navigation.navigate("UserManagement")}
           iconName="account"
+          style={styles.button}
         />
       </View>
-      <SearchFilters params={searchParams} onParamsChange={setSearchParams} />
       <View style={styles.listContainer}>
         <FlashList
+          // @ts-ignore
           data={loads?.map((load) => ({ ...load, id: load._id }))}
           renderItem={renderItem}
           estimatedItemSize={200}
@@ -64,11 +67,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
     padding: theme.spacing.md,
+    paddingTop: 0,
   },
   headerButtons: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: theme.spacing.md,
+    alignItems: "center",
+  },
+  button: {
+    backgroundColor: theme.colors.primary,
+    borderRadius: 12,
+    paddingVertical: theme.spacing.sm,
+    paddingHorizontal: theme.spacing.lg,
+    alignItems: "center",
+    justifyContent: "center",
+    elevation: 2,
+    marginLeft: theme.spacing.sm,
   },
   listContainer: {
     flex: 1,
