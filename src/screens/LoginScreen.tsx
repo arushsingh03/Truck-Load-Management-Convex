@@ -13,6 +13,8 @@ import {
   ImageBackground,
   Image,
   SafeAreaView,
+  TouchableOpacity,
+  Alert,
 } from "react-native";
 
 import { theme } from "../theme";
@@ -21,24 +23,74 @@ export const LoginScreen = ({ navigation }: any) => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // @ts-ignore
   const login = useAction(api.auth.login);
+  // @ts-ignore
+  const requestPasswordReset = useAction(api.auth.requestPasswordReset);
   const setUser = useAuthStore((state) => state.setUser);
+
+  const validateInputs = () => {
+    if (!phone.trim()) {
+      setError("Phone number is required");
+      return false;
+    }
+    if (!password.trim()) {
+      setError("Password is required");
+      return false;
+    }
+    if (phone.length < 10) {
+      setError("Please enter a valid phone number");
+      return false;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters");
+      return false;
+    }
+    return true;
+  };
 
   const handleLogin = async () => {
     try {
+      setError("");
+      if (!validateInputs()) return;
+
+      setIsLoading(true);
       const userData = await login({ phone, password });
       const user = { ...userData, id: userData._id };
       setUser(user);
+
       if (user.isAdmin) {
         navigation.replace("AdminDashboard");
       } else {
         navigation.replace("UserDashboard");
       }
     } catch (error: any) {
-      setError(error.message);
+      const errorMessage = error.message || "An error occurred";
+      if (errorMessage.includes("credentials")) {
+        setError("Invalid phone number or password");
+      } else if (errorMessage.includes("approved")) {
+        setError("Your account is pending approval");
+      } else {
+        setError("Unable to login. Please try again later");
+      }
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleForgotPassword = () => {
+    if (!phone.trim()) {
+      Alert.alert(
+        "Phone Number Required",
+        "Please enter your phone number to reset password"
+      );
+      return;
+    }
+
+    navigation.navigate("ResetPassword", { phone });
   };
 
   return (
@@ -61,7 +113,18 @@ export const LoginScreen = ({ navigation }: any) => {
             <Text style={styles.slogan}>
               At Your <Text style={styles.highlightText}>Fingertips</Text>
             </Text>
-            {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            {error ? (
+              <View style={styles.errorContainer}>
+                <MaterialIcons
+                  name="error"
+                  size={20}
+                  color={theme.colors.error}
+                />
+                <Text style={styles.error}>{error}</Text>
+              </View>
+            ) : null}
+
             <View style={styles.inputContainer}>
               <MaterialIcons
                 name="phone"
@@ -73,10 +136,15 @@ export const LoginScreen = ({ navigation }: any) => {
                 style={styles.input}
                 placeholder="Phone Number"
                 value={phone}
-                onChangeText={setPhone}
+                onChangeText={(text) => {
+                  setPhone(text);
+                  setError("");
+                }}
                 keyboardType="phone-pad"
+                maxLength={15}
               />
             </View>
+
             <View style={styles.inputContainer}>
               <Ionicons
                 name="lock-closed"
@@ -88,16 +156,43 @@ export const LoginScreen = ({ navigation }: any) => {
                 style={styles.input}
                 placeholder="Password"
                 value={password}
-                onChangeText={setPassword}
-                secureTextEntry
+                onChangeText={(text) => {
+                  setPassword(text);
+                  setError("");
+                }}
+                secureTextEntry={!showPassword}
               />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off" : "eye"}
+                  size={24}
+                  color={theme.colors.muted}
+                />
+              </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              style={styles.forgotPasswordContainer}
+              onPress={handleForgotPassword}
+            >
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+            </TouchableOpacity>
+
             <View style={styles.buttonContainer}>
-              <Button title="Login" onPress={handleLogin} variant="primary" />
+              <Button
+                title={isLoading ? "Logging in..." : "Login"}
+                onPress={handleLogin}
+                variant="primary"
+                disabled={isLoading}
+              />
               <Button
                 title="Register"
                 onPress={() => navigation.navigate("Register")}
                 variant="outline"
+                disabled={isLoading}
               />
             </View>
           </View>
@@ -173,9 +268,30 @@ const styles = StyleSheet.create({
   icon: {
     marginRight: theme.spacing.sm,
   },
+  eyeIcon: {
+    padding: theme.spacing.xs,
+  },
+  errorContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: `${theme.colors.error}20`,
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+    marginBottom: theme.spacing.md,
+  },
   error: {
     color: theme.colors.error,
-    marginBottom: theme.spacing.md,
-    textAlign: "center",
+    marginLeft: theme.spacing.xs,
+    fontSize: 14,
+  },
+  forgotPasswordContainer: {
+    alignItems: "flex-end",
+    marginTop: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
+  },
+  forgotPasswordText: {
+    color: theme.colors.primary,
+    fontSize: 14,
   },
 });

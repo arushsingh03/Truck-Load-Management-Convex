@@ -19,12 +19,27 @@ export const Header = ({ isAdmin, navigation }: HeaderProps) => {
     navigation.replace("Login");
   };
 
+  const getRoleBadge = () => {
+    switch (user?.userType) {
+      case "admin":
+        return "Admin";
+      case "driver":
+        return "Driver";
+      case "motorOwner":
+        return "Motor Owner";
+      case "transporter":
+        return "Transporter";
+      default:
+        return null;
+    }
+  };
+
   return (
     <SafeAreaView>
       <View style={styles.container}>
         <View style={styles.leftSection}>
           <Text style={styles.title}>Om Motors</Text>
-          {isAdmin && <Text style={styles.adminBadge}>Admin</Text>}
+          {user?.userType && <Text style={styles.roleBadge}>{getRoleBadge()}</Text>}
         </View>
 
         <View style={styles.rightSection}>
@@ -84,7 +99,7 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.primary,
   },
-  adminBadge: {
+  roleBadge: {
     backgroundColor: theme.colors.primary,
     color: theme.colors.background,
     fontSize: 12,
@@ -92,6 +107,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
     marginLeft: theme.spacing.sm,
+    textTransform: "capitalize",
   },
   rightSection: {
     flexDirection: "row",

@@ -21,6 +21,7 @@ type ButtonProps = {
   style?: ViewStyle;
   textStyle?: TextStyle;
   iconStyle?: ViewStyle;
+  disabled?: boolean;
 };
 
 export const Button = ({

@@ -21,7 +21,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
   const [formData, setFormData] = useState({
     name: user?.name || "",
     phone: user?.phone || "",
-    email: user?.email || "",
+    email: user?.transportName || "",
     address: user?.address || "",
   });
   const [error, setError] = useState("");
@@ -31,7 +31,12 @@ export const EditProfileScreen = ({ navigation }: any) => {
   const handleSubmit = async () => {
     try {
       if (user?.id) {
-        const updatedUser = await updateProfile({ ...formData, id: user.id });
+        const updatedUser = await updateProfile({
+          ...formData,
+          id: user.id,
+          transportName: "",
+          userType: "driver",
+        });
         setUser(updatedUser);
         navigation.goBack();
       } else {
@@ -82,7 +87,7 @@ export const EditProfileScreen = ({ navigation }: any) => {
               <Ionicons name="mail-outline" style={styles.icon} />
               <TextInput
                 style={styles.input}
-                placeholder="Email"
+                placeholder="Transport Name"
                 value={formData.email}
                 onChangeText={(value) =>
                   setFormData({ ...formData, email: value })

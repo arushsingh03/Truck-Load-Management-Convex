@@ -18,6 +18,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import { Id } from "../../convex/_generated/dataModel";
 
 type LoadCardProps = {
   load: Load;
@@ -48,8 +49,26 @@ export const LoadCard = ({
     Linking.openURL(`tel:${load.contactNumber}`);
   };
 
-  const handleEmail = () => {
-    Linking.openURL(`mailto:${load.email}`);
+  const handleStaffCall = () => {
+    Linking.openURL(`tel:${load.staffContactNumber}`);
+  };
+
+  const validateForm = () => {
+    const isValidContactNumber = editedLoad.contactNumber.trim() !== "";
+    const isValidStaffContactNumber =
+      editedLoad.staffContactNumber.trim() !== "";
+    const isValidWeight = !isNaN(editedLoad.weight) && editedLoad.weight > 0;
+    const isValidLength =
+      !isNaN(editedLoad.truckLength) && editedLoad.truckLength > 0;
+
+    return (
+      editedLoad.currentLocation.trim() !== "" &&
+      editedLoad.destinationLocation.trim() !== "" &&
+      isValidWeight &&
+      isValidLength &&
+      isValidContactNumber &&
+      isValidStaffContactNumber
+    );
   };
 
   const handleEditSubmit = async () => {
@@ -72,29 +91,17 @@ export const LoadCard = ({
         truckLength: editedLoad.truckLength,
         lengthUnit: editedLoad.lengthUnit,
         contactNumber: editedLoad.contactNumber,
-        email: editedLoad.email,
+        staffContactNumber: editedLoad.staffContactNumber,
       });
       setShowEditModal(false);
       onEdit(load._id);
       Alert.alert("Success", "Load updated successfully");
     } catch (error) {
-      Alert.alert("Success", "Load updated successfully");
+      Alert.alert("Error", "Failed to update load");
       console.error(error);
     } finally {
       setIsEditing(false);
     }
-  };
-
-  const validateForm = () => {
-    return (
-      editedLoad.currentLocation.trim() !== "" &&
-      editedLoad.destinationLocation.trim() !== "" &&
-      editedLoad.weight > 0 &&
-      editedLoad.truckLength > 0 &&
-      editedLoad.contactNumber.trim() !== "" &&
-      editedLoad.email.trim() !== "" &&
-      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editedLoad.email)
-    );
   };
 
   const handleUploadReceipt = async () => {
@@ -108,9 +115,14 @@ export const LoadCard = ({
         const file = result.assets[0];
         if (!file.uri) throw new Error("No file URI available");
 
-        const { uploadUrl, storageId } = await generateUploadUrl({
+        const uploadResult = await generateUploadUrl({
           loadId: load._id,
         });
+
+        const { uploadUrl, storageId } = uploadResult as {
+          uploadUrl: string;
+          storageId: string;
+        };
 
         const formData = new FormData();
         formData.append("file", {
@@ -140,8 +152,11 @@ export const LoadCard = ({
       }
     } catch (error) {
       console.error("Upload error:", error);
-      {/* @ts-ignore */}
-      Alert.alert("Error", `Failed to upload receipt: ${error.message}`);
+      Alert.alert(
+        "Error",
+        // @ts-ignore
+        `Failed to upload receipt: ${error.message}`
+      );
     } finally {
       setIsUploading(false);
     }
@@ -156,7 +171,7 @@ export const LoadCard = ({
       }
 
       const downloadUrl = await generateDownloadUrl({
-        storageId: load.receiptStorageId,
+        storageId: load.receiptStorageId as Id<"_storage">,
       });
 
       if (typeof downloadUrl === "string") {
@@ -186,7 +201,7 @@ export const LoadCard = ({
               onDelete(load._id);
               Alert.alert("Success", "Load deleted successfully");
             } catch (error) {
-              Alert.alert("Success", "Your load removed successfully");
+              Alert.alert("Error", "Failed to delete load");
               console.error(error);
             }
           },
@@ -233,9 +248,13 @@ export const LoadCard = ({
               <TextInput
                 style={[styles.input, { flex: 2 }]}
                 value={String(editedLoad.weight)}
-                onChangeText={(text) =>
-                  setEditedLoad({ ...editedLoad, weight: Number(text) || 0 })
-                }
+                onChangeText={(text) => {
+                  const numValue = parseFloat(text);
+                  setEditedLoad({
+                    ...editedLoad,
+                    weight: isNaN(numValue) ? 0 : numValue,
+                  });
+                }}
                 keyboardType="numeric"
                 placeholder="Enter weight"
               />
@@ -259,12 +278,13 @@ export const LoadCard = ({
               <TextInput
                 style={[styles.input, { flex: 2 }]}
                 value={String(editedLoad.truckLength)}
-                onChangeText={(text) =>
+                onChangeText={(text) => {
+                  const numValue = parseFloat(text);
                   setEditedLoad({
                     ...editedLoad,
-                    truckLength: Number(text) || 0,
-                  })
-                }
+                    truckLength: isNaN(numValue) ? 0 : numValue,
+                  });
+                }}
                 keyboardType="numeric"
                 placeholder="Enter truck length"
               />
@@ -294,15 +314,15 @@ export const LoadCard = ({
               placeholder="Enter contact number"
             />
 
-            <Text style={styles.inputLabel}>Email</Text>
+            <Text style={styles.inputLabel}>Stack Contact Details</Text>
             <TextInput
               style={styles.input}
-              value={editedLoad.email}
+              value={editedLoad.staffContactNumber}
               onChangeText={(text) =>
-                setEditedLoad({ ...editedLoad, email: text })
+                setEditedLoad({ ...editedLoad, staffContactNumber: text })
               }
-              keyboardType="email-address"
-              placeholder="Enter email"
+              keyboardType="phone-pad"
+              placeholder="Enter staff contact number"
             />
 
             <View style={styles.modalActions}>
@@ -346,7 +366,6 @@ export const LoadCard = ({
               color={theme.colors.primary}
             />
             <Text style={styles.dateTimeText}>
-              {" "}
               {dayjs(load.createdAt).format("MM/DD/YY")}
             </Text>
           </View>
@@ -364,11 +383,38 @@ export const LoadCard = ({
             </View>
           )}
         </View>
-        <View style={styles.statusBadge}>
-          <Text style={styles.statusText}>
-            {load.receiptStorageId ? "Receipt Available" : "No Receipt"}
-          </Text>
-        </View>
+        <TouchableOpacity
+          style={[
+            styles.statusBadge,
+            !load.receiptStorageId && styles.noReceiptBadge,
+          ]}
+          onPress={load.receiptStorageId ? handleDownloadReceipt : undefined}
+          disabled={!load.receiptStorageId || isDownloading}
+        >
+          {isDownloading ? (
+            <ActivityIndicator size="small" color={theme.colors.primary} />
+          ) : (
+            <>
+              <MaterialIcons
+                name={load.receiptStorageId ? "download" : "receipt-long"}
+                size={16}
+                color={
+                  load.receiptStorageId
+                    ? theme.colors.primary
+                    : theme.colors.error
+                }
+              />
+              <Text
+                style={[
+                  styles.statusText,
+                  !load.receiptStorageId && styles.noReceiptText,
+                ]}
+              >
+                {load.receiptStorageId ? "Download" : "No Receipt"}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
       <View style={styles.locationContainer}>
@@ -434,15 +480,17 @@ export const LoadCard = ({
             size={20}
             color={theme.colors.secondary}
           />
-          <Text style={styles.contactText}>{load.contactNumber}</Text>
+          <Text style={styles.contactText}>Driver: {load.contactNumber}</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.contactItem} onPress={handleEmail}>
+        <TouchableOpacity style={styles.contactItem} onPress={handleStaffCall}>
           <MaterialIcons
-            name="email"
+            name="phone"
             size={20}
             color={theme.colors.secondary}
           />
-          <Text style={styles.contactText}>{load.email}</Text>
+          <Text style={styles.contactText}>
+            Staff: {load.staffContactNumber}
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -481,25 +529,6 @@ export const LoadCard = ({
                 <Text style={styles.actionText}>
                   {load.receiptStorageId ? "Update Receipt" : "Upload Receipt"}
                 </Text>
-              </>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              styles.downloadButton,
-              !load.receiptStorageId && styles.disabledButton,
-            ]}
-            onPress={handleDownloadReceipt}
-            disabled={isDownloading || !load.receiptStorageId}
-          >
-            {isDownloading ? (
-              <ActivityIndicator color="#FFF" size="small" />
-            ) : (
-              <>
-                <MaterialIcons name="download" size={20} color="#FFF" />
-                <Text style={styles.actionText}>Download</Text>
               </>
             )}
           </TouchableOpacity>
@@ -549,16 +578,25 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: theme.colors.primary + "20",
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,
     borderRadius: 12,
     marginLeft: 2,
   },
+  noReceiptBadge: {
+    backgroundColor: theme.colors.error + "20",
+  },
   statusText: {
     color: theme.colors.primary,
     fontSize: 12,
     fontWeight: "600",
+    marginLeft: 4,
+  },
+  noReceiptText: {
+    color: theme.colors.error,
   },
   locationContainer: {
     flexDirection: "row",
@@ -661,9 +699,6 @@ const styles = StyleSheet.create({
   },
   uploadButton: {
     backgroundColor: theme.colors.success,
-  },
-  downloadButton: {
-    backgroundColor: theme.colors.info,
   },
   disabledButton: {
     opacity: 0.5,

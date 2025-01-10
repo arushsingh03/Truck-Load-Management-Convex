@@ -11,43 +11,160 @@ import {
   ScrollView,
   Image,
   ImageBackground,
+  TouchableOpacity,
+  Platform,
+  Alert,
 } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import { Picker } from "@react-native-picker/picker";
+import * as DocumentPicker from "expo-document-picker";
+import { UserType } from "../types/types";
 import { theme } from "../theme";
 
-export const RegisterScreen = ({ navigation }: any) => {
-  const [formData, setFormData] = useState({
+interface DocumentInfo {
+  uri: string;
+  name: string;
+  mimeType: string | null | undefined;
+  size: number | null | undefined;
+}
+
+interface NavigationProps {
+  navigation: any;
+}
+
+interface FormData {
+  name: string;
+  phone: string;
+  transportName: string;
+  password: string;
+  address: string;
+  userType: UserType | "";
+  documentInfo: DocumentInfo | null;
+}
+
+export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     phone: "",
-    email: "",
+    transportName: "",
     password: "",
-    confirmPassword: "",
     address: "",
+    userType: "",
+    documentInfo: null,
   });
+
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  {/* @ts-ignore */}
   const register = useAction(api.auth.register);
 
-  const handleRegister = async () => {
-    if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match");
-      return;
-    }
-
+  const handleDocumentPick = async () => {
     try {
-      const { confirmPassword, ...registrationData } = formData;
-      await register({
-        ...registrationData,
-        isAdmin: false,
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["image/*", "application/pdf"],
+        copyToCacheDirectory: false,
       });
-      navigation.replace("Login");
+
+      if (result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        setFormData({
+          ...formData,
+          documentInfo: {
+            uri: asset.uri,
+            name: asset.name,
+            mimeType: asset.mimeType,
+            size: asset.size,
+          },
+        });
+        setError("");
+      }
+    } catch (err) {
+      setError("Error uploading document");
+      console.error("Document pick error:", err);
+    }
+  };
+
+  const getDocumentLabel = () => {
+    switch (formData.userType) {
+      case "driver":
+        return "Upload Driving License";
+      case "motorOwner":
+        return "Upload Aadhaar Card";
+      case "transporter":
+        return "Upload GST Certificate";
+      default:
+        return "Upload Document";
+    }
+  };
+
+  const validateForm = (): boolean => {
+    if (!formData.name.trim()) {
+      setError("Name is required");
+      return false;
+    }
+    if (!formData.phone.trim()) {
+      setError("Phone number is required");
+      return false;
+    }
+    if (!formData.phone.match(/^\d{10}$/)) {
+      setError("Please enter a valid 10-digit phone number");
+      return false;
+    }
+    if (!formData.transportName.trim()) {
+      setError("Transport name is required");
+      return false;
+    }
+    if (!formData.password.trim()) {
+      setError("Password is required");
+      return false;
+    }
+    if (formData.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      return false;
+    }
+    if (!formData.address.trim()) {
+      setError("Address is required");
+      return false;
+    }
+    if (!formData.userType) {
+      setError("Please select a user type");
+      return false;
+    }
+    if (!formData.documentInfo) {
+      setError("Please upload required document");
+      return false;
+    }
+    return true;
+  };
+
+  const handleRegister = async () => {
+    if (!validateForm()) return;
+
+    setIsLoading(true);
+    try {
+      await register({
+        name: formData.name,
+        phone: formData.phone,
+        transportName: formData.transportName,
+        password: formData.password,
+        address: formData.address,
+        userType: formData.userType as UserType,
+        documentStorageId: formData.documentInfo?.uri || null,
+      });
+
+      Alert.alert(
+        "Registration Successful",
+        "Your account has been created. Please wait for admin approval.",
+        [{ text: "OK", onPress: () => navigation.replace("Login") }]
+      );
     } catch (error: any) {
-      setError(error.message);
+      setError(error.message || "Registration failed. Please try again.");
+      console.error("Registration error:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -58,7 +175,10 @@ export const RegisterScreen = ({ navigation }: any) => {
         style={styles.background}
         resizeMode="cover"
       >
-        <ScrollView contentContainerStyle={styles.container}>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
           <View style={styles.card}>
             <Image
               source={require("../../assets/logo.png")}
@@ -68,7 +188,31 @@ export const RegisterScreen = ({ navigation }: any) => {
             <Text style={styles.slogan}>
               Create Your <Text style={styles.highlightText}>Account</Text>
             </Text>
+
             {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            <View style={styles.pickerContainer}>
+              <MaterialIcons
+                name="person-outline"
+                size={20}
+                color={theme.colors.muted}
+                style={styles.icon}
+              />
+              <Picker
+                selectedValue={formData.userType}
+                style={styles.picker}
+                onValueChange={(value) => {
+                  setFormData({ ...formData, userType: value as UserType });
+                  setError("");
+                }}
+              >
+                <Picker.Item label="Select User Type :" value="" />
+                <Picker.Item label="Admin" value="admin" />
+                <Picker.Item label="Driver" value="driver" />
+                <Picker.Item label="Motor Owner" value="motorOwner" />
+                <Picker.Item label="Transporter" value="transporter" />
+              </Picker>
+            </View>
 
             <View style={styles.inputContainer}>
               <FontAwesome
@@ -81,9 +225,10 @@ export const RegisterScreen = ({ navigation }: any) => {
                 style={styles.input}
                 placeholder="Name"
                 value={formData.name}
-                onChangeText={(value) =>
-                  setFormData({ ...formData, name: value })
-                }
+                onChangeText={(value) => {
+                  setFormData({ ...formData, name: value });
+                  setError("");
+                }}
               />
             </View>
 
@@ -98,29 +243,30 @@ export const RegisterScreen = ({ navigation }: any) => {
                 style={styles.input}
                 placeholder="Phone Number"
                 value={formData.phone}
-                onChangeText={(value) =>
-                  setFormData({ ...formData, phone: value })
-                }
+                onChangeText={(value) => {
+                  setFormData({ ...formData, phone: value });
+                  setError("");
+                }}
                 keyboardType="phone-pad"
+                maxLength={10}
               />
             </View>
 
             <View style={styles.inputContainer}>
-              <Ionicons
-                name="mail"
+              <MaterialIcons
+                name="business"
                 size={20}
                 color={theme.colors.muted}
                 style={styles.icon}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Email"
-                value={formData.email}
-                onChangeText={(value) =>
-                  setFormData({ ...formData, email: value })
-                }
-                keyboardType="email-address"
-                autoCapitalize="none"
+                placeholder="Transport Name"
+                value={formData.transportName}
+                onChangeText={(value) => {
+                  setFormData({ ...formData, transportName: value });
+                  setError("");
+                }}
               />
             </View>
 
@@ -135,9 +281,10 @@ export const RegisterScreen = ({ navigation }: any) => {
                 style={styles.input}
                 placeholder="Password"
                 value={formData.password}
-                onChangeText={(value) =>
-                  setFormData({ ...formData, password: value })
-                }
+                onChangeText={(value) => {
+                  setFormData({ ...formData, password: value });
+                  setError("");
+                }}
                 secureTextEntry={!showPassword}
               />
               <Ionicons
@@ -145,31 +292,6 @@ export const RegisterScreen = ({ navigation }: any) => {
                 size={20}
                 color={theme.colors.muted}
                 onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeIcon}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Ionicons
-                name="lock-closed-outline"
-                size={20}
-                color={theme.colors.muted}
-                style={styles.icon}
-              />
-              <TextInput
-                style={styles.input}
-                placeholder="Confirm Password"
-                value={formData.confirmPassword}
-                onChangeText={(value) =>
-                  setFormData({ ...formData, confirmPassword: value })
-                }
-                secureTextEntry={!showConfirmPassword}
-              />
-              <Ionicons
-                name={showConfirmPassword ? "eye-off" : "eye"}
-                size={20}
-                color={theme.colors.muted}
-                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 style={styles.eyeIcon}
               />
             </View>
@@ -185,24 +307,46 @@ export const RegisterScreen = ({ navigation }: any) => {
                 style={[styles.input, styles.textArea]}
                 placeholder="Address"
                 value={formData.address}
-                onChangeText={(value) =>
-                  setFormData({ ...formData, address: value })
-                }
+                onChangeText={(value) => {
+                  setFormData({ ...formData, address: value });
+                  setError("");
+                }}
                 multiline
                 numberOfLines={3}
               />
             </View>
 
+            <TouchableOpacity
+              style={styles.uploadButton}
+              onPress={handleDocumentPick}
+            >
+              <MaterialIcons
+                name="upload-file"
+                size={20}
+                color={theme.colors.primary}
+                style={styles.uploadIcon}
+              />
+              <Text style={styles.uploadButtonText}>{getDocumentLabel()}</Text>
+            </TouchableOpacity>
+
+            {formData.documentInfo && (
+              <Text style={styles.uploadedFile}>
+                File uploaded: {formData.documentInfo.name}
+              </Text>
+            )}
+
             <Button
-              title="Register"
+              title={isLoading ? "Registering..." : "Register"}
               onPress={handleRegister}
               variant="primary"
+              disabled={isLoading}
             />
             <Button
               title="Go Back"
               onPress={() => navigation.navigate("Login")}
               variant="outline"
-            ></Button>
+              disabled={isLoading}
+            />
           </View>
         </ScrollView>
       </ImageBackground>
@@ -231,23 +375,41 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+    width: "100%",
+    alignSelf: "center",
+    marginTop: 15,
   },
   logo: {
     width: 120,
     height: 120,
     alignSelf: "center",
-    marginBottom: 15,
+    marginBottom: 5,
   },
   slogan: {
     fontSize: 20,
     fontWeight: "bold",
     color: theme.colors.secondary,
     textAlign: "center",
-    marginBottom: theme.spacing.xl,
+    marginBottom: 10,
   },
   highlightText: {
-    fontWeight: "bold",
     color: theme.colors.primary,
+  },
+  pickerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    borderRadius: 8,
+    paddingHorizontal: theme.spacing.md,
+    marginVertical: theme.spacing.sm,
+    backgroundColor: theme.colors.shadow,
+  },
+  picker: {
+    flex: 1,
+    height: 55,
+    fontSize: 16,
+    color: theme.colors.text,
   },
   inputContainer: {
     flexDirection: "row",
@@ -264,19 +426,42 @@ const styles = StyleSheet.create({
   },
   input: {
     flex: 1,
-    height: 40,
+    height: 50,
     fontSize: 16,
+    color: theme.colors.text,
   },
   textArea: {
-    height: 40,
+    paddingTop: Platform.OS === "android" ? 12 : 8,
+  },
+  uploadButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: theme.spacing.md,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: theme.colors.primary,
+    borderRadius: 8,
+    marginVertical: theme.spacing.md,
+  },
+  uploadIcon: {
+    marginRight: theme.spacing.sm,
+  },
+  uploadButtonText: {
+    color: theme.colors.primary,
+    fontSize: 16,
+  },
+  uploadedFile: {
+    color: theme.colors.success,
+    textAlign: "center",
+    marginBottom: theme.spacing.md,
   },
   error: {
     color: theme.colors.error,
-    marginBottom: theme.spacing.md,
     textAlign: "center",
+    marginBottom: theme.spacing.md,
   },
   eyeIcon: {
-    position: "absolute",
-    right: theme.spacing.md,
+    padding: theme.spacing.sm,
   },
 });

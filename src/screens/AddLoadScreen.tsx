@@ -1,9 +1,11 @@
 import { theme } from "../theme";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation } from "convex/react";
 import { Button } from "../components/Button";
 import { api } from "../../convex/_generated/api";
 import { Picker } from "@react-native-picker/picker";
+import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import {
   View,
   StyleSheet,
@@ -12,9 +14,66 @@ import {
   Text,
   SafeAreaView,
   ImageBackground,
+  Platform,
 } from "react-native";
 
+// Configure notifications
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+// Request permissions
+async function registerForPushNotificationsAsync() {
+  let token;
+
+  if (Constants.isDevice) {
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      alert("Failed to get push token for push notification!");
+      return;
+    }
+
+    // Fix for Constants.expoConfig possibly being null
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) {
+      throw new Error("Project ID is not configured");
+    }
+
+    token = (
+      await Notifications.getExpoPushTokenAsync({
+        projectId: projectId,
+      })
+    ).data;
+  } else {
+    alert("Must use physical device for Push Notifications");
+  }
+
+  if (Platform.OS === "android") {
+    Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+
+  return token;
+}
+
 export const AddLoadScreen = ({ navigation }: any) => {
+  const [expoPushToken, setExpoPushToken] = useState("");
   const [formData, setFormData] = useState({
     currentLocation: "",
     destinationLocation: "",
@@ -23,27 +82,75 @@ export const AddLoadScreen = ({ navigation }: any) => {
     truckLength: "",
     lengthUnit: "ft",
     contactNumber: "",
-    email: "",
+    staffContactNumber: "",
   });
   const [error, setError] = useState("");
 
+  useEffect(() => {
+    registerForPushNotificationsAsync().then((token) => {
+      if (token) {
+        setExpoPushToken(token);
+      }
+    });
+  }, []);
+
   const addLoad = useMutation(api.loads.addLoad);
+
+  async function scheduleNotification() {
+    setTimeout(async () => {
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "New Load Added! 🚛",
+          body: `Load from ${formData.currentLocation} to ${formData.destinationLocation} has been added successfully.`,
+          data: {
+            weight: `${formData.weight} ${formData.weightUnit}`,
+            truckLength: `${formData.truckLength} ${formData.lengthUnit}`,
+            contact: formData.contactNumber,
+            staffContactNumber: formData.staffContactNumber,
+          },
+        },
+        trigger: null,
+      });
+    }, 1000);
+  }
 
   const handleSubmit = async () => {
     try {
+      // Validate form data
+      if (!formData.currentLocation || !formData.destinationLocation) {
+        setError("Location fields are required");
+        return;
+      }
+
+      if (!formData.weight || !formData.truckLength) {
+        setError("Weight and truck length are required");
+        return;
+      }
+
+      if (!formData.contactNumber || !formData.staffContactNumber) {
+        setError("Contact information is required");
+        return;
+      }
+
       await addLoad({
         ...formData,
         weight: parseFloat(formData.weight),
         truckLength: parseFloat(formData.truckLength),
         weightUnit: formData.weightUnit as "kg" | "ton",
         lengthUnit: formData.lengthUnit as "ft" | "m",
+        staffContactNumber: ""
       });
+
+      // Show notification after successful load addition
+      await scheduleNotification();
+
       navigation.goBack();
     } catch (error: any) {
       setError(error.message);
     }
   };
 
+  // Rest of your component remains the same...
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
@@ -55,6 +162,8 @@ export const AddLoadScreen = ({ navigation }: any) => {
           <View style={styles.card}>
             <Text style={styles.header}>Add Load</Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
+
+            {/* Your existing JSX remains the same... */}
             <View style={styles.formGroup}>
               <TextInput
                 style={styles.input}
@@ -65,6 +174,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 }
               />
             </View>
+
             <View style={styles.formGroup}>
               <TextInput
                 style={styles.input}
@@ -75,6 +185,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 }
               />
             </View>
+
             <View style={[styles.formGroup, styles.row]}>
               <TextInput
                 style={[styles.input, styles.flex1]}
@@ -96,6 +207,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 <Picker.Item label="ton" value="ton" />
               </Picker>
             </View>
+
             <View style={[styles.formGroup, styles.row]}>
               <TextInput
                 style={[styles.input, styles.flex1]}
@@ -117,6 +229,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 <Picker.Item label="ft" value="ft" />
               </Picker>
             </View>
+
             <View style={styles.formGroup}>
               <TextInput
                 style={styles.input}
@@ -128,18 +241,19 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 keyboardType="phone-pad"
               />
             </View>
+
             <View style={styles.formGroup}>
               <TextInput
                 style={styles.input}
-                placeholder="Email"
-                value={formData.email}
+                placeholder="Staff Contact Number"
+                value={formData.staffContactNumber}
                 onChangeText={(value) =>
-                  setFormData({ ...formData, email: value })
+                  setFormData({ ...formData, staffContactNumber: value })
                 }
-                keyboardType="email-address"
-                autoCapitalize="none"
+                keyboardType="number-pad"
               />
             </View>
+
             <Button title="Add Load" onPress={handleSubmit} />
           </View>
         </ScrollView>
@@ -149,6 +263,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
 };
 
 const styles = StyleSheet.create({
+  // Your existing styles remain the same...
   safeArea: {
     flex: 1,
   },

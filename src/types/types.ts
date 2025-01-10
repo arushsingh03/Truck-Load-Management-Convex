@@ -1,15 +1,22 @@
 import { Id } from "../../convex/_generated/dataModel";
 
+export type UserType = 'driver' | 'motorOwner' | 'transporter' | 'admin';
+
 export type User = {
     id: string;
     name: string;
     phone: string;
-    email: string;
+    transportName: string;
     address: string;
+    userType: UserType;
     isAdmin: boolean;
+    isApproved: boolean;
+    documentStorageId?: string;
+    createdAt: string;
 };
 
 export type Load = {
+    email: any;
     _id: Id<'loads'>;
     currentLocation: string;
     destinationLocation: string;
@@ -18,7 +25,7 @@ export type Load = {
     truckLength: number;
     lengthUnit: 'm' | 'ft';
     contactNumber: string;
-    email: string;
+    staffContactNumber: string; 
     createdAt: string;
     receiptStorageId?: string;
     isOwner?: boolean;

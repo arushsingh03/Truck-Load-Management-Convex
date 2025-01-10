@@ -13,6 +13,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { EditProfileScreen } from "../screens/EditProfileScreen";
 import { HeaderForScreen } from "../components/HeaderForScreens";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { ResetPasswordScreen } from "../components/ResetPassword";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -87,6 +88,11 @@ export const AppNavigator = () => {
                   />
                 ),
               })}
+            />
+            <Stack.Screen
+              name="ResetPassword"
+              component={ResetPasswordScreen}
+              options={{ headerShown: false }}
             />
           </Stack.Navigator>
         </NavigationContainer>

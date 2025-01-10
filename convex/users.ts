@@ -1,19 +1,32 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
+import { hashPassword } from './utils';
 
 export const insertUser = mutation({
     args: {
         name: v.string(),
         phone: v.string(),
-        email: v.string(),
+        transportName: v.string(),
         password: v.string(),
         address: v.string(),
+        userType: v.union(
+            v.literal('driver'),
+            v.literal('motorOwner'),
+            v.literal('transporter'),
+            v.literal('admin')
+        ),
         isAdmin: v.boolean(),
+        isApproved: v.boolean(),
+        documentStorageId: v.optional(v.string()),
     },
     async handler(ctx, args) {
-        return await ctx.db.insert('users', args);
+        return await ctx.db.insert('users', {
+            ...args,
+            createdAt: new Date().toISOString(),
+        });
     },
 });
+
 
 export const getUser = query({
     args: {
@@ -32,8 +45,14 @@ export const updateProfile = mutation({
         id: v.string(),
         name: v.string(),
         phone: v.string(),
-        email: v.string(),
+        transportName: v.string(),
         address: v.string(),
+        userType: v.union(
+            v.literal('driver'),
+            v.literal('motorOwner'),
+            v.literal('transporter'),
+            v.literal('admin')
+        ),
     },
     async handler(ctx, args) {
         const existingUser = await ctx.db
@@ -48,8 +67,9 @@ export const updateProfile = mutation({
         await ctx.db.patch(existingUser._id, {
             name: args.name,
             phone: args.phone,
-            email: args.email,
+            transportName: args.transportName,
             address: args.address,
+            userType: args.userType,
         });
 
         const updatedUser = await ctx.db
@@ -65,9 +85,34 @@ export const updateProfile = mutation({
             id: updatedUser._id,
             name: updatedUser.name,
             phone: updatedUser.phone,
-            email: updatedUser.email,
+            transportName: updatedUser.transportName,
             address: updatedUser.address,
+            userType: updatedUser.userType,
             isAdmin: updatedUser.isAdmin,
+            isApproved: updatedUser.isApproved,
+            documentStorageId: updatedUser.documentStorageId,
+            createdAt: updatedUser.createdAt,
         };
     },
+});
+
+
+export const updatePassword = mutation({
+    args: {
+        userId: v.id("users"),
+        hashedPassword: v.string()
+    },
+    handler: async (ctx, args) => {
+        const user = await ctx.db.get(args.userId);
+        
+        if (!user) {
+            throw new Error("User not found");
+        }
+
+        await ctx.db.patch(args.userId, {
+            password: args.hashedPassword
+        });
+
+        return await ctx.db.get(args.userId);
+    }
 });

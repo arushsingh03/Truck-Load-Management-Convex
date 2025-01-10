@@ -35,8 +35,8 @@ export const ProfileScreen = ({ navigation }: any) => {
               <Text style={styles.value}>{user.phone}</Text>
             </View>
             <View style={styles.row}>
-              <Text style={styles.label}>Email:</Text>
-              <Text style={styles.value}>{user.email}</Text>
+              <Text style={styles.label}>Tranport Name:</Text>
+              <Text style={styles.value}>{user.transportName}</Text>
             </View>
             <View style={styles.row}>
               <Text style={styles.label}>Address:</Text>

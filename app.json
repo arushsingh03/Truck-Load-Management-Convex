@@ -12,11 +12,38 @@
       "resizeMode": "contain",
       "backgroundColor": "#f9f8fb"
     },
+    "plugins": [
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#f9f8fb",
+          "sounds": ["./assets/notification.wav"]
+        }
+      ]
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.arushsingh03.ommotors"
     },
     "android": {
-      "permissions": ["CAMERA", "LOCATION", "INTERNET", "ACCESS_NETWORK_STATE"],
+      "permissions": [
+        "CAMERA",
+        "LOCATION",
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM",
+        "VIBRATE",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO",
+        "MANAGE_DOCUMENTS"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f9f8fb"

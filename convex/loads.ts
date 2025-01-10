@@ -2,6 +2,11 @@ import dayjs from 'dayjs';
 import { v } from 'convex/values';
 import { mutation, query } from "../convex/_generated/server";
 
+type UploadResult = {
+  uploadUrl: string;
+  storageId: string;
+};
+
 export const addLoad = mutation({
   args: {
     currentLocation: v.string(),
@@ -11,7 +16,7 @@ export const addLoad = mutation({
     truckLength: v.number(),
     lengthUnit: v.union(v.literal('m'), v.literal('ft')),
     contactNumber: v.string(),
-    email: v.string(),
+    staffContactNumber: v.string(), 
   },
   async handler(ctx, args) {
     const load = await ctx.db.insert('loads', {
@@ -21,6 +26,7 @@ export const addLoad = mutation({
     return load;
   },
 });
+
 
 export const getTodayLoads = query({
   args: {},
@@ -74,13 +80,18 @@ export const generateUploadUrl = mutation({
     if (!load) {
       throw new Error('Load not found');
     }
-    const uploadUrl = await ctx.storage.generateUploadUrl();
+
+    // Get the URL string from storage
+    const url = await ctx.storage.generateUploadUrl();
+
+    // Return the URL and extract a storage ID from it
     return {
-      uploadUrl,
-      storageId: uploadUrl.split('token=')[1]
+      uploadUrl: url,
+      storageId: url.split('/').pop() || '', // Extract the last part of the URL as storageId
     };
   },
 });
+
 
 export const uploadReceipt = mutation({
   args: {
@@ -93,6 +104,8 @@ export const uploadReceipt = mutation({
       throw new Error('Load not found');
     }
 
+    console.log('Updating load with storage ID:', args.storageId);
+
     await ctx.db.patch(args.loadId, {
       receiptStorageId: args.storageId,
     });
@@ -100,23 +113,24 @@ export const uploadReceipt = mutation({
   },
 });
 
+
 export const generateDownloadUrl = mutation({
   args: {
     storageId: v.string(),
   },
   async handler(ctx, args) {
     try {
-      const actualStorageId = args.storageId.includes('token=')
-        ? args.storageId.split('token=')[1]
-        : args.storageId;
-
-      return await ctx.storage.getUrl(actualStorageId);
+      console.log('Generating download URL for storage ID:', args.storageId);
+      const downloadUrl = await ctx.storage.getUrl(args.storageId);
+      console.log('Generated download URL:', downloadUrl);
+      return downloadUrl;
     } catch (error) {
       console.error('Download URL generation error:', error);
-      throw new Error('Failed to generate download URL');
+      throw error;
     }
   },
 });
+
 
 export const deleteLoad = mutation({
   args: {
@@ -154,7 +168,7 @@ export const updateLoad = mutation({
     truckLength: v.number(),
     lengthUnit: v.union(v.literal('m'), v.literal('ft')),
     contactNumber: v.string(),
-    email: v.string(),
+    staffContactNumber: v.string(), 
   },
   async handler(ctx, args) {
     const { loadId, ...updateData } = args;
