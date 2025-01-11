@@ -494,7 +494,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                   color={theme.colors.secondary}
                 />
                 <Text style={styles.contactText}>
-                  Driver: {load.contactNumber}
+                  Phone: {load.contactNumber}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
