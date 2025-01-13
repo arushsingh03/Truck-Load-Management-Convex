@@ -35,7 +35,7 @@ export const UserDashboard = () => {
 
     return (
       <FlashList
-        // @ts-ignore
+        //   @ts-ignore
         data={loadsWithId}
         renderItem={({ item }: { item: Load }) => (
           <LoadCard

@@ -209,3 +209,24 @@ export const getDocumentUrl = query({
         }
     },
 });
+
+export const getUserStatistics = query({
+    args: {},
+    async handler(ctx) {
+        const users = await ctx.db
+            .query("users")
+            .filter((q) => q.neq(q.field("userType"), "admin"))
+            .collect();
+
+        const totalUsers = users.length;
+        const approvedUsers = users.filter(user => user.isApproved).length;
+        const pendingUsers = users.filter(user => !user.isApproved).length;
+
+        return {
+            total: totalUsers,
+            approved: approvedUsers,
+            pending: pendingUsers,
+            approvalRate: totalUsers > 0 ? (approvedUsers / totalUsers * 100).toFixed(1) : 0
+        };
+    }
+});

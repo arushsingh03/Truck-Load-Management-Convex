@@ -6,7 +6,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  ImageBackground,
   ActivityIndicator,
   Modal,
   ScrollView,
@@ -17,6 +16,31 @@ import { useQuery, useMutation } from "convex/react";
 import { Id } from "../../convex/_generated/dataModel";
 import { MaterialIcons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
+
+const UserStatistics = () => {
+  const stats = useQuery(api.users.getUserStatistics);
+
+  if (!stats) {
+    return <ActivityIndicator size="small" color={theme.colors.primary} />;
+  }
+
+  return (
+    <View style={styles.statsContainer}>
+      <View style={styles.statCard}>
+        <Text style={styles.statNumber}>{stats.total}</Text>
+        <Text style={styles.statLabel}>Total Users</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statNumber}>{stats.approved}</Text>
+        <Text style={styles.statLabel}>Approved</Text>
+      </View>
+      <View style={styles.statCard}>
+        <Text style={styles.statNumber}>{stats.pending}</Text>
+        <Text style={styles.statLabel}>Pending</Text>
+      </View>
+    </View>
+  );
+};
 
 const UserCard = ({
   user,
@@ -204,6 +228,7 @@ export const UserManagement = () => {
   return (
     <View style={styles.container}>
       <Text style={styles.pageTitle}>User Management</Text>
+      <UserStatistics />
       <FlashList
         data={users}
         renderItem={({ item }) => (
@@ -221,6 +246,34 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
     padding: theme.spacing.md,
+  },
+  statsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+  },
+  statCard: {
+    alignItems: "center",
+    backgroundColor: theme.colors.light,
+    padding: theme.spacing.md,
+    borderRadius: 8,
+    minWidth: 100,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: theme.colors.primary,
+  },
+  statLabel: {
+    fontSize: 14,
+    color: theme.colors.text,
+    marginTop: 4,
   },
   pageTitle: {
     fontSize: 24,
@@ -379,7 +432,7 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 12,
-    color: theme.colors.light,
+    color: theme.colors.text,
     marginBottom: 4,
   },
   detailValue: {
