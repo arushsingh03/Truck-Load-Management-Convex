@@ -152,7 +152,7 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
         password: formData.password,
         address: formData.address,
         userType: formData.userType as UserType,
-        documentStorageId: formData.documentInfo?.uri || null,
+        documentStorageId: formData.documentInfo?.uri || undefined,
       });
 
       Alert.alert(
@@ -167,7 +167,6 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
       setIsLoading(false);
     }
   };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground

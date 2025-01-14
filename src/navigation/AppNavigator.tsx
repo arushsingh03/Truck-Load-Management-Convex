@@ -15,6 +15,7 @@ import { HeaderForScreen } from "../components/HeaderForScreens";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { ResetPasswordScreen } from "../components/ResetPassword";
 import { UserManagement } from "../screens/UserManagemet";
+import { ReceiptsScreen } from "../screens/ReceiptScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -91,11 +92,13 @@ export const AppNavigator = () => {
               })}
             />
             <Stack.Screen
+              //@ts-ignore
               name="ResetPassword"
               component={ResetPasswordScreen}
               options={{ headerShown: false }}
             />
             <Stack.Screen
+              //@ts-ignore
               name="UserManagement"
               component={UserManagement}
               options={({ navigation }) => ({
@@ -104,6 +107,16 @@ export const AppNavigator = () => {
                     navigation={navigation}
                     title="User Management"
                   />
+                ),
+              })}
+            />
+            <Stack.Screen
+              //@ts-ignore
+              name="Receipts"
+              component={ReceiptsScreen}
+              options={({ navigation }) => ({
+                header: () => (
+                  <HeaderForScreen navigation={navigation} title="Receipts" />
                 ),
               })}
             />

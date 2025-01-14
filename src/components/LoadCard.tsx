@@ -21,7 +21,6 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
-import { Id } from "../../convex/_generated/dataModel";
 
 if (Platform.OS === "android") {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -34,6 +33,8 @@ interface LoadCardProps {
   isAdmin: boolean;
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
+  renderReceiptButton: () => React.ReactNode;
+  receiptStorageId?: string;
 }
 
 export const LoadCard: React.FC<LoadCardProps> = ({
@@ -41,7 +42,11 @@ export const LoadCard: React.FC<LoadCardProps> = ({
   isAdmin,
   onEdit,
   onDelete,
+  renderReceiptButton,
 }) => {
+  {
+    renderReceiptButton && renderReceiptButton();
+  }
   const [isExpanded, setIsExpanded] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
@@ -86,6 +91,90 @@ export const LoadCard: React.FC<LoadCardProps> = ({
     );
   }, [editedLoad]);
 
+  const handleDownloadReceipt = async () => {
+    try {
+      setIsDownloading(true);
+
+      console.log(
+        "Initial receiptStorageId:",
+        JSON.stringify(load.receiptStorageId)
+      );
+
+      if (!load.receiptStorageId) {
+        Alert.alert("Error", "No receipt available for download");
+        return;
+      }
+
+      console.log("Storage ID type:", typeof load.receiptStorageId);
+      console.log("Raw storage ID value:", load.receiptStorageId);
+
+      let cleanStorageId = load.receiptStorageId;
+
+      console.log("Contains slash:", cleanStorageId.includes("/"));
+      console.log("Contains question mark:", cleanStorageId.includes("?"));
+
+      if (cleanStorageId.includes("/")) {
+        const parts = cleanStorageId.split("/");
+        console.log("Split by slash:", parts);
+        cleanStorageId = parts[parts.length - 1];
+      }
+
+      if (cleanStorageId.includes("?")) {
+        const parts = cleanStorageId.split("?");
+        console.log("Split by question mark:", parts);
+        cleanStorageId = parts[0];
+      }
+
+      console.log("Cleaned storage ID:", cleanStorageId);
+      console.log("Cleaned ID length:", cleanStorageId.length);
+
+      if (!cleanStorageId) {
+        Alert.alert("Error", "Storage ID is empty after cleaning");
+        return;
+      }
+
+      if (cleanStorageId === "upload") {
+        Alert.alert("Error", "Invalid storage ID: 'upload' is not valid");
+        return;
+      }
+
+      if (cleanStorageId.length < 32) {
+        Alert.alert(
+          "Error",
+          `Storage ID too short: ${cleanStorageId.length} chars (need >= 32)`
+        );
+        return;
+      }
+
+      try {
+        const downloadUrl = await generateDownloadUrl({
+          storageId: cleanStorageId,
+        });
+
+        console.log("Download URL response:", downloadUrl);
+
+        if (typeof downloadUrl === "string" && downloadUrl) {
+          await Linking.openURL(downloadUrl);
+        } else {
+          throw new Error(`Invalid download URL format: ${typeof downloadUrl}`);
+        }
+      } catch (downloadError) {
+        console.error("Download URL generation error:", downloadError);
+        throw downloadError;
+      }
+    } catch (error) {
+      console.error("Full error details:", error);
+      Alert.alert(
+        "Error",
+        error instanceof Error
+          ? `Download failed: ${error.message}`
+          : "Failed to download receipt"
+      );
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const handleUploadReceipt = async () => {
     try {
       setIsUploading(true);
@@ -95,25 +184,37 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
       if (result.assets && result.assets.length > 0) {
         const file = result.assets[0];
-        if (!file.uri) throw new Error("No file URI available");
+        if (!file.uri) {
+          throw new Error("No file URI available");
+        }
 
-        const uploadResult = await generateUploadUrl({
-          loadId: load._id,
-        });
+        console.log("Generating upload URL...");
+        const uploadResult = await generateUploadUrl();
+        console.log("Upload result:", uploadResult);
 
-        const { uploadUrl, storageId } = uploadResult as {
-          uploadUrl: string;
-          storageId: string;
-        };
+        if (!uploadResult?.uploadUrl || !uploadResult?.storageId) {
+          throw new Error("Failed to generate valid upload URL and storage ID");
+        }
+
+        if (
+          uploadResult.storageId === "upload" ||
+          uploadResult.storageId.length < 32
+        ) {
+          console.error("Invalid storage ID received:", uploadResult.storageId);
+          throw new Error("Received invalid storage ID from server");
+        }
+
+        console.log("Got valid storage ID:", uploadResult.storageId);
 
         const formData = new FormData();
         formData.append("file", {
           uri: file.uri,
-          type: file.mimeType,
+          type: file.mimeType || "application/octet-stream",
           name: file.name,
         } as any);
 
-        const uploadResponse = await fetch(uploadUrl, {
+        console.log("Uploading file to:", uploadResult.uploadUrl);
+        const uploadResponse = await fetch(uploadResult.uploadUrl, {
           method: "POST",
           body: formData,
           headers: {
@@ -122,46 +223,33 @@ export const LoadCard: React.FC<LoadCardProps> = ({
         });
 
         if (!uploadResponse.ok) {
-          throw new Error(`Upload failed: ${uploadResponse.status}`);
+          throw new Error(
+            `Upload failed with status: ${uploadResponse.status}`
+          );
         }
 
+        console.log("File uploaded successfully");
+
+        console.log(
+          "Saving receipt reference with storage ID:",
+          uploadResult.storageId
+        );
         await uploadReceipt({
           loadId: load._id,
-          storageId,
+          storageId: uploadResult.storageId,
         });
 
+        console.log("Receipt reference saved successfully");
         Alert.alert("Success", "Receipt uploaded successfully");
       }
     } catch (error) {
       console.error("Upload error:", error);
-      Alert.alert("Error", "Failed to upload receipt");
+      Alert.alert(
+        "Error",
+        error instanceof Error ? error.message : "Failed to upload receipt"
+      );
     } finally {
       setIsUploading(false);
-    }
-  };
-
-  const handleDownloadReceipt = async () => {
-    try {
-      setIsDownloading(true);
-      if (!load.receiptStorageId) {
-        Alert.alert("Error", "No receipt available for download");
-        return;
-      }
-
-      const downloadUrl = await generateDownloadUrl({
-        storageId: load.receiptStorageId as Id<"_storage">,
-      });
-
-      if (typeof downloadUrl === "string") {
-        await Linking.openURL(downloadUrl);
-      } else {
-        throw new Error("Invalid download URL");
-      }
-    } catch (error) {
-      console.error("Download error:", error);
-      Alert.alert("Error", "Failed to download receipt");
-    } finally {
-      setIsDownloading(false);
     }
   };
 
@@ -248,7 +336,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                 {dayjs(load._creationTime).format("h:mm A")}
               </Text>
             </View>
-          )}{" "}
+          )}
         </View>
         <TouchableOpacity
           style={[
@@ -290,7 +378,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
         <MaterialIcons
           name="arrow-forward"
           size={24}
-          color={theme.colors.primary}
+          color={theme.colors.icon}
           style={styles.arrowIcon}
         />
         <View style={styles.locationItem}>
@@ -325,7 +413,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               style={styles.input}
               value={editedLoad.currentLocation}
               onChangeText={(text) =>
-                setEditedLoad({ ...editedLoad, currentLocation: text })
+                setEditedLoad((prevLoad) => ({
+                  ...prevLoad,
+                  currentLocation: text,
+                }))
               }
               placeholder="Enter current location"
             />
@@ -335,7 +426,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               style={styles.input}
               value={editedLoad.destinationLocation}
               onChangeText={(text) =>
-                setEditedLoad({ ...editedLoad, destinationLocation: text })
+                setEditedLoad((prevLoad) => ({
+                  ...prevLoad,
+                  destinationLocation: text,
+                }))
               }
               placeholder="Enter destination location"
             />
@@ -347,10 +441,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                 value={String(editedLoad.weight)}
                 onChangeText={(text) => {
                   const numValue = parseFloat(text);
-                  setEditedLoad({
-                    ...editedLoad,
+                  setEditedLoad((prevLoad) => ({
+                    ...prevLoad,
                     weight: isNaN(numValue) ? 0 : numValue,
-                  });
+                  }));
                 }}
                 keyboardType="numeric"
                 placeholder="Enter weight"
@@ -358,10 +452,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               <TouchableOpacity
                 style={styles.unitButton}
                 onPress={() =>
-                  setEditedLoad({
-                    ...editedLoad,
-                    weightUnit: editedLoad.weightUnit === "kg" ? "ton" : "kg",
-                  })
+                  setEditedLoad((prevLoad) => ({
+                    ...prevLoad,
+                    weightUnit: prevLoad.weightUnit === "kg" ? "ton" : "kg",
+                  }))
                 }
               >
                 <Text style={styles.unitButtonText}>
@@ -377,10 +471,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                 value={String(editedLoad.truckLength)}
                 onChangeText={(text) => {
                   const numValue = parseFloat(text);
-                  setEditedLoad({
-                    ...editedLoad,
+                  setEditedLoad((prevLoad) => ({
+                    ...prevLoad,
                     truckLength: isNaN(numValue) ? 0 : numValue,
-                  });
+                  }));
                 }}
                 keyboardType="numeric"
                 placeholder="Enter truck length"
@@ -388,10 +482,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               <TouchableOpacity
                 style={styles.unitButton}
                 onPress={() =>
-                  setEditedLoad({
-                    ...editedLoad,
-                    lengthUnit: editedLoad.lengthUnit === "m" ? "ft" : "m",
-                  })
+                  setEditedLoad((prevLoad) => ({
+                    ...prevLoad,
+                    lengthUnit: prevLoad.lengthUnit === "m" ? "ft" : "m",
+                  }))
                 }
               >
                 <Text style={styles.unitButtonText}>
@@ -405,7 +499,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               style={styles.input}
               value={editedLoad.contactNumber}
               onChangeText={(text) =>
-                setEditedLoad({ ...editedLoad, contactNumber: text })
+                setEditedLoad((prevLoad) => ({
+                  ...prevLoad,
+                  contactNumber: text,
+                }))
               }
               keyboardType="phone-pad"
               placeholder="Enter contact number"
@@ -416,7 +513,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               style={styles.input}
               value={editedLoad.staffContactNumber}
               onChangeText={(text) =>
-                setEditedLoad({ ...editedLoad, staffContactNumber: text })
+                setEditedLoad((prevLoad) => ({
+                  ...prevLoad,
+                  staffContactNumber: text,
+                }))
               }
               keyboardType="phone-pad"
               placeholder="Enter staff contact number"

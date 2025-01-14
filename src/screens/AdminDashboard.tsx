@@ -4,11 +4,20 @@ import { Load } from "../types/types";
 import { useQuery } from "convex/react";
 import React, { useState } from "react";
 import { Button } from "../components/Button";
-import { View, StyleSheet } from "react-native";
+import {
+  View,
+  StyleSheet,
+  Alert,
+  TouchableOpacity,
+  Linking,
+} from "react-native";
+import { useMutation } from "convex/react";
 import { FlashList } from "@shopify/flash-list";
 import { LoadCard } from "../components/LoadCard";
 import { api } from "../../convex/_generated/api";
+import { MaterialIcons } from "@expo/vector-icons";
 import { SearchFilters } from "../components/SearchFilters";
+import NotificationBell from "../components/NotificationBell";
 
 export const AdminDashboard = ({ navigation }: any) => {
   const [searchParams, setSearchParams] = useState({
@@ -16,6 +25,21 @@ export const AdminDashboard = ({ navigation }: any) => {
     dateTo: dayjs().format("YYYY-MM-DD"),
     location: "",
   });
+  const generateDownloadUrl = useMutation(api.loads.generateDownloadUrl);
+
+  const handleDownload = async (storageId: string) => {
+    try {
+      const downloadUrl = await generateDownloadUrl({ storageId });
+      if (downloadUrl) {
+        Linking.openURL(downloadUrl);
+      } else {
+        throw new Error("Download URL is null");
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      Alert.alert("Error", "Failed to download receipt");
+    }
+  };
 
   const loads = useQuery(api.loads.getLoads, searchParams);
 
@@ -23,19 +47,29 @@ export const AdminDashboard = ({ navigation }: any) => {
     <LoadCard
       load={item}
       isAdmin={true}
-      onEdit={function (id: string): void {
-        throw new Error("Function not implemented.");
-      }}
-      onDelete={function (id: string): void {
-        throw new Error("Function not implemented.");
-      }}
+      onEdit={(id: string) => navigation.navigate("EditLoad", { loadId: id })}
+      onDelete={(id: string) =>
+        Alert.alert("Delete", "Delete functionality not implemented yet")
+      }
+      renderReceiptButton={() =>
+        item.receiptStorageId && (
+          <TouchableOpacity
+            style={styles.downloadButton}
+            onPress={() =>
+              item.receiptStorageId && handleDownload(item.receiptStorageId)
+            }
+          >
+            <MaterialIcons name="file-download" size={24} color="#FFF" />
+          </TouchableOpacity>
+        )
+      }
     />
   );
 
   return (
     <View style={styles.container}>
+      {/* Header Buttons */}
       <View style={styles.headerButtons}>
-        <SearchFilters params={searchParams} onParamsChange={setSearchParams} />
         <Button
           title="Add Load"
           onPress={() => navigation.navigate("AddLoad")}
@@ -48,7 +82,11 @@ export const AdminDashboard = ({ navigation }: any) => {
           iconName="account"
           style={styles.button}
         />
+        <NotificationBell onPress={() => navigation.navigate("Receipts")} />
       </View>
+
+      <SearchFilters params={searchParams} onParamsChange={setSearchParams} />
+
       <View style={styles.listContainer}>
         <FlashList
           // @ts-ignore
@@ -73,6 +111,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+  },
+  downloadButton: {
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+    marginLeft: theme.spacing.sm,
   },
   button: {
     backgroundColor: theme.colors.primary,

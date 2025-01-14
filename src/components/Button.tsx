@@ -114,12 +114,7 @@ const styles = StyleSheet.create({
   tertiaryButton: {
     backgroundColor: theme.colors.tertiary || "transparent",
     padding: 12,
-    paddingRight: 0,
-    borderRadius: 12,
-    paddingVertical: theme.spacing.sm,
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 2,
+    width: "100%",
   },
   dangerButton: {
     backgroundColor: theme.colors.danger || "red",
