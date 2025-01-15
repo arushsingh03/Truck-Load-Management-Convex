@@ -18,6 +18,7 @@ import { api } from "../../convex/_generated/api";
 import { MaterialIcons } from "@expo/vector-icons";
 import { SearchFilters } from "../components/SearchFilters";
 import NotificationBell from "../components/NotificationBell";
+import BadgeCounter from "../components/BadgeCounter";
 
 export const AdminDashboard = ({ navigation }: any) => {
   const [searchParams, setSearchParams] = useState({
@@ -26,6 +27,7 @@ export const AdminDashboard = ({ navigation }: any) => {
     location: "",
   });
   const generateDownloadUrl = useMutation(api.loads.generateDownloadUrl);
+  const pendingUsersCount = useQuery(api.users.getPendingUsersCount);
 
   const handleDownload = async (storageId: string) => {
     try {
@@ -76,12 +78,15 @@ export const AdminDashboard = ({ navigation }: any) => {
           iconName="truck-plus"
           style={styles.button}
         />
-        <Button
-          title="Manage Users"
-          onPress={() => navigation.navigate("UserManagement")}
-          iconName="account"
-          style={styles.button}
-        />
+        <View style={{ position: "relative" }}>
+          <Button
+            title="Manage Users"
+            onPress={() => navigation.navigate("UserManagement")}
+            iconName="account"
+            style={styles.button}
+          />
+          <BadgeCounter count={pendingUsersCount ?? 0} />
+        </View>
         <NotificationBell onPress={() => navigation.navigate("Receipts")} />
       </View>
 
@@ -99,7 +104,6 @@ export const AdminDashboard = ({ navigation }: any) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -111,6 +115,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginTop: 10,
   },
   downloadButton: {
     backgroundColor: theme.colors.primary,

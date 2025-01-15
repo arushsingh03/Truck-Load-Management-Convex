@@ -230,3 +230,12 @@ export const getUserStatistics = query({
         };
     }
 });
+
+export const getPendingUsersCount = query(async (ctx) => {
+    const users = await ctx.db
+      .query("users")
+      .filter((q) => q.eq(q.field("isApproved"), false))
+      .collect();
+    
+    return users.length;
+  });
