@@ -70,24 +70,32 @@ export const getLoads = query({
   },
 });
 
+
 export const generateUploadUrl = mutation({
   async handler(ctx) {
     try {
       const uploadUrl = await ctx.storage.generateUploadUrl();
       console.log('Generated upload URL:', uploadUrl);
 
-      const storageId = uploadUrl.split('?')[0].split('/').pop() || '';
-      console.log('Extracted storage ID:', storageId);
+      const url = new URL(uploadUrl);
+      const token = url.searchParams.get('token');
 
-      if (!storageId || !/^[\w-]{36,}$/.test(storageId)) {
-        console.error('Invalid storage ID extracted:', storageId);
-        throw new Error('Invalid storage ID extracted during upload.');
+      if (!token) {
+        throw new Error('No token found in upload URL');
       }
 
+      const storageId = token;
+
+      if (!storageId || storageId.length < 32) {
+        console.error('Invalid storage ID/token:', storageId);
+        throw new Error('Invalid storage ID format received from server');
+      }
+
+      console.log('Valid storage ID extracted:', storageId);
       return { uploadUrl, storageId };
     } catch (error) {
       console.error('Upload URL generation error:', error);
-      throw new Error('Failed to generate upload URL.');
+      throw new Error('Failed to generate upload URL. Please try again.');
     }
   },
 });
@@ -103,15 +111,19 @@ export const uploadReceipt = mutation({
       throw new Error('Load not found');
     }
 
-    console.log('Updating load with storage ID:', args.storageId);
+    if (!args.storageId || args.storageId.length < 32) {
+      throw new Error('Invalid storage ID format');
+    }
+
+    console.log('Saving receipt with storage ID:', args.storageId);
 
     await ctx.db.patch(args.loadId, {
       receiptStorageId: args.storageId,
     });
+
     return load;
   },
 });
-
 
 export const generateDownloadUrl = mutation({
   args: {

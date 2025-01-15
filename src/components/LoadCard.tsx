@@ -190,21 +190,12 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
         console.log("Generating upload URL...");
         const uploadResult = await generateUploadUrl();
-        console.log("Upload result:", uploadResult);
 
         if (!uploadResult?.uploadUrl || !uploadResult?.storageId) {
-          throw new Error("Failed to generate valid upload URL and storage ID");
+          throw new Error("Failed to get valid upload URL");
         }
 
-        if (
-          uploadResult.storageId === "upload" ||
-          uploadResult.storageId.length < 32
-        ) {
-          console.error("Invalid storage ID received:", uploadResult.storageId);
-          throw new Error("Received invalid storage ID from server");
-        }
-
-        console.log("Got valid storage ID:", uploadResult.storageId);
+        console.log("Got storage ID:", uploadResult.storageId);
 
         const formData = new FormData();
         formData.append("file", {
@@ -213,7 +204,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
           name: file.name,
         } as any);
 
-        console.log("Uploading file to:", uploadResult.uploadUrl);
+        console.log("Uploading to URL:", uploadResult.uploadUrl);
         const uploadResponse = await fetch(uploadResult.uploadUrl, {
           method: "POST",
           body: formData,
@@ -223,30 +214,29 @@ export const LoadCard: React.FC<LoadCardProps> = ({
         });
 
         if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          console.error("Upload response error:", errorText);
           throw new Error(
-            `Upload failed with status: ${uploadResponse.status}`
+            `Upload failed: ${uploadResponse.status} ${errorText}`
           );
         }
 
         console.log("File uploaded successfully");
 
-        console.log(
-          "Saving receipt reference with storage ID:",
-          uploadResult.storageId
-        );
         await uploadReceipt({
           loadId: load._id,
           storageId: uploadResult.storageId,
         });
 
-        console.log("Receipt reference saved successfully");
         Alert.alert("Success", "Receipt uploaded successfully");
       }
     } catch (error) {
       console.error("Upload error:", error);
       Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Failed to upload receipt"
+        "Upload Failed",
+        error instanceof Error
+          ? error.message
+          : "Failed to upload receipt. Please try again."
       );
     } finally {
       setIsUploading(false);

@@ -27,7 +27,6 @@ export const ReceiptsScreen = () => {
     api.loads.deleteStandaloneReceipt
   );
 
-  // Sync state with query data
   useEffect(() => {
     if (queryReceipts) {
       setReceipts(queryReceipts);

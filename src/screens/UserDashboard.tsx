@@ -170,7 +170,6 @@ export const UserDashboard = () => {
 
   return (
     <View style={styles.container}>
-      {/* Standalone Upload Section */}
       <View style={styles.uploadSection}>
         <TouchableOpacity
           style={[
@@ -203,7 +202,6 @@ export const UserDashboard = () => {
         </TouchableOpacity>
       </View>
 
-      {/* Loads List */}
       <View style={styles.contentContainer}>{renderContent()}</View>
     </View>
   );

@@ -70,7 +70,6 @@ export const AdminDashboard = ({ navigation }: any) => {
 
   return (
     <View style={styles.container}>
-      {/* Header Buttons */}
       <View style={styles.headerButtons}>
         <Button
           title="Add Load"

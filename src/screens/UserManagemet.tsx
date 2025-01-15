@@ -50,10 +50,56 @@ const UserCard = ({
   onToggleApproval: (userId: Id<"users">, newStatus: boolean) => void;
 }) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showDocumentModal, setShowDocumentModal] = useState(false);
+  const documentUrl = useQuery(api.users.getDocumentUrl, { 
+    storageId: user.documentStorageId 
+  });
 
   const handleCall = () => {
     Linking.openURL(`tel:${user.phone}`);
   };
+
+  const DocumentModal = () => (
+    <Modal
+      visible={showDocumentModal}
+      animationType="slide"
+      transparent={true}
+      onRequestClose={() => setShowDocumentModal(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <Text style={styles.modalTitle}>User Document</Text>
+          
+          <View style={styles.documentContainer}>
+            {documentUrl ? (
+              <View style={styles.documentWrapper}>
+                <Text style={styles.documentText}>
+                  Document URL: {documentUrl}
+                </Text>
+                <TouchableOpacity
+                  style={styles.documentButton}
+                  onPress={() => Linking.openURL(documentUrl)}
+                >
+                  <Text style={styles.documentButtonText}>Open Document</Text>
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <Text style={styles.noDocumentText}>
+                No document available
+              </Text>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={styles.closeButton}
+            onPress={() => setShowDocumentModal(false)}
+          >
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
   const DetailsModal = () => (
     <Modal
@@ -130,6 +176,7 @@ const UserCard = ({
   return (
     <View style={styles.card}>
       {DetailsModal()}
+      {DocumentModal()}
       <View style={styles.header}>
         <View style={styles.userInfo}>
           <MaterialIcons name="person" size={24} color={theme.colors.primary} />
@@ -145,9 +192,7 @@ const UserCard = ({
           <MaterialIcons
             name={user.isApproved ? "check-circle" : "pending"}
             size={16}
-            color={
-              user.isApproved ? theme.colors.success : theme.colors.warning
-            }
+            color={user.isApproved ? theme.colors.success : theme.colors.warning}
           />
           <Text
             style={[
@@ -190,6 +235,14 @@ const UserCard = ({
         >
           <MaterialIcons name="info" size={20} color={theme.colors.light} />
           <Text style={styles.detailsButtonText}>View Details</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.documentButton}
+          onPress={() => setShowDocumentModal(true)}
+        >
+          <MaterialIcons name="description" size={20} color={theme.colors.light} />
+          <Text style={styles.documentButtonText}>View</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -269,6 +322,40 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: theme.colors.primary,
+  },
+  documentContainer: {
+    padding: theme.spacing.md,
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    marginVertical: theme.spacing.lg,
+  },
+  documentWrapper: {
+    alignItems: 'center',
+  },
+  documentText: {
+    fontSize: 14,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.md,
+  },
+  documentButton: {
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: theme.spacing.sm,
+  },
+  documentButtonText: {
+    color: theme.colors.light,
+    marginLeft: theme.spacing.sm,
+    fontWeight: '500',
+  },
+  noDocumentText: {
+    fontSize: 16,
+    color: theme.colors.text,
+    textAlign: 'center',
+    fontStyle: 'italic',
   },
   statLabel: {
     fontSize: 14,
@@ -460,3 +547,4 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
+
