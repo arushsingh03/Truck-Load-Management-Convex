@@ -6,50 +6,17 @@ import { AppNavigator } from "./src/navigation/AppNavigator";
 import { View, Text, ActivityIndicator } from "react-native";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ErrorBoundary } from "./src/components/ErrorBoundary";
 
 SplashScreen.preventAutoHideAsync();
 
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: Error | null }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false, error: null };
+const initializeConvexClient = () => {
+  const convexUrl = Constants.expoConfig?.extra?.convex?.apiUrl;
+  if (!convexUrl) {
+    throw new Error("Convex URL not configured. Please check your app.json configuration.");
   }
-
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
-  }
-
-  componentDidCatch(error: Error, info: React.ErrorInfo) {
-    console.error("App Error:", error, info);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <View
-          style={{
-            flex: 1,
-            justifyContent: "center",
-            alignItems: "center",
-            padding: 20,
-          }}
-        >
-          <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
-            Something went wrong
-          </Text>
-          <Text style={{ textAlign: "center", color: "#666" }}>
-            {this.state.error?.message || "Unknown error occurred"}
-          </Text>
-        </View>
-      );
-    }
-    return this.props.children;
-  }
-}
+  return new ConvexReactClient(convexUrl);
+};
 
 const LoadingScreen = () => (
   <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -58,27 +25,12 @@ const LoadingScreen = () => (
   </View>
 );
 
-const initializeConvexClient = () => {
-  const convexUrl = Constants.expoConfig?.extra?.convex?.apiUrl;
-
-  if (!convexUrl) {
-    throw new Error(
-      "Convex URL not configured. Please check your app.json configuration."
-    );
-  }
-
-  return new ConvexReactClient(convexUrl);
-};
-
 export default function App() {
   const [isReady, setIsReady] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
-  const [convexClient, setConvexClient] =
-    React.useState<ConvexReactClient | null>(null);
-  const [isAuthChecked, setIsAuthChecked] = React.useState(false);
-
+  const [convexClient, setConvexClient] = React.useState<ConvexReactClient | null>(null);
+  
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
-  const setUser = useAuthStore((state) => state.setUser);
 
   React.useEffect(() => {
     async function initialize() {
@@ -86,23 +38,13 @@ export default function App() {
         const client = initializeConvexClient();
         setConvexClient(client);
 
-        const storedUser = await AsyncStorage.getItem("@user_data");
-        if (storedUser) {
-          const userData = JSON.parse(storedUser);
-          setUser(userData);
-        }
-
         await initializeAuth();
-        setIsAuthChecked(true);
-
         await SplashScreen.hideAsync();
-
+        
         setIsReady(true);
       } catch (e) {
         console.error("Initialization error:", e);
-        setError(
-          e instanceof Error ? e : new Error("Failed to initialize app")
-        );
+        setError(e instanceof Error ? e : new Error("Failed to initialize app"));
         await SplashScreen.hideAsync();
       }
     }
@@ -122,20 +64,11 @@ export default function App() {
 
   if (error) {
     return (
-      <View
-        style={{
-          flex: 1,
-          justifyContent: "center",
-          alignItems: "center",
-          padding: 20,
-        }}
-      >
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", padding: 20 }}>
         <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
           Failed to Start App
         </Text>
-        <Text style={{ textAlign: "center", color: "#666" }}>
-          {error.message}
-        </Text>
+        <Text style={{ textAlign: "center", color: "#666" }}>{error.message}</Text>
       </View>
     );
   }
@@ -156,3 +89,4 @@ export default function App() {
     </ErrorBoundary>
   );
 }
+

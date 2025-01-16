@@ -3,28 +3,34 @@ import { theme } from "../theme";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../store/authStore";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
 
-type HeaderProps = {
+type HeaderForScreenProps = {
   navigation: any;
   title: string;
 };
 
-export const HeaderForScreen = ({ navigation, title }: HeaderProps) => {
-  const setUser = useAuthStore((state) => state.setUser);
-
+export const HeaderForScreen = ({ navigation, title }: HeaderForScreenProps) => {
+  const logout = useAuthStore((state) => state.logout);
+  
   const navigationState = navigation.getState();
-  const currentRoute =
-    navigationState.routes[navigationState.index]?.name || "";
+  const currentRoute = navigationState.routes[navigationState.index]?.name || "";
 
-  console.log("Current Route:", currentRoute);
-  const handleLogout = () => {
-    setUser(null);
-    navigation.replace("Login");
-  };
-
-  const handleChat = () => {
-    alert("Chat feature coming soon!");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      Alert.alert(
+        'Logout Failed',
+        'Unable to logout. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   return (
@@ -40,36 +46,26 @@ export const HeaderForScreen = ({ navigation, title }: HeaderProps) => {
               style={styles.iconButton}
               onPress={() => navigation.navigate("Profile")}
             >
-              <MaterialIcons
-                name="person"
-                size={24}
-                color={theme.colors.secondary}
-              />
+              <MaterialIcons name="person" size={24} color={theme.colors.secondary} />
             </TouchableOpacity>
           )}
 
-          {currentRoute !== "Chat" && (
-            <TouchableOpacity style={styles.iconButton} onPress={handleChat}>
-              <MaterialIcons
-                name="chat"
-                size={24}
-                color={theme.colors.secondary}
-              />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity
+            style={styles.iconButton}
+            onPress={() => alert("Chat feature coming soon!")}
+          >
+            <MaterialIcons name="chat" size={24} color={theme.colors.secondary} />
+          </TouchableOpacity>
 
           <TouchableOpacity style={styles.iconButton} onPress={handleLogout}>
-            <MaterialIcons
-              name="logout"
-              size={24}
-              color={theme.colors.secondary}
-            />
+            <MaterialIcons name="logout" size={24} color={theme.colors.secondary} />
           </TouchableOpacity>
         </View>
       </View>
     </SafeAreaView>
   );
 };
+
 
 const styles = StyleSheet.create({
   container: {

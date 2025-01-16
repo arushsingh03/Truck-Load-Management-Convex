@@ -3,7 +3,7 @@ import { theme } from "../theme";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useAuthStore } from "../store/authStore";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { View, StyleSheet, TouchableOpacity, Text } from "react-native";
+import { View, StyleSheet, TouchableOpacity, Text, Alert } from "react-native";
 
 type HeaderProps = {
   isAdmin: boolean;
@@ -12,11 +12,23 @@ type HeaderProps = {
 
 export const Header = ({ isAdmin, navigation }: HeaderProps) => {
   const user = useAuthStore((state) => state.user);
-  const setUser = useAuthStore((state) => state.setUser);
+  const logout = useAuthStore((state) => state.logout);
 
-  const handleLogout = () => {
-    setUser(null);
-    navigation.replace("Login");
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Login' }],
+      });
+    } catch (error) {
+      console.error('Logout failed:', error);
+      Alert.alert(
+        'Logout Failed',
+        'Unable to logout. Please try again.',
+        [{ text: 'OK' }]
+      );
+    }
   };
 
   const getRoleBadge = () => {
@@ -47,30 +59,18 @@ export const Header = ({ isAdmin, navigation }: HeaderProps) => {
             style={styles.iconButton}
             onPress={() => navigation.navigate("Profile")}
           >
-            <MaterialIcons
-              name="person"
-              size={24}
-              color={theme.colors.secondary}
-            />
+            <MaterialIcons name="person" size={24} color={theme.colors.secondary} />
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.iconButton}
             onPress={() => alert("Chat feature coming soon!")}
           >
-            <MaterialIcons
-              name="chat"
-              size={24}
-              color={theme.colors.secondary}
-            />
+            <MaterialIcons name="chat" size={24} color={theme.colors.secondary} />
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.iconButton} onPress={handleLogout}>
-            <MaterialIcons
-              name="logout"
-              size={24}
-              color={theme.colors.secondary}
-            />
+            <MaterialIcons name="logout" size={24} color={theme.colors.secondary} />
           </TouchableOpacity>
         </View>
       </View>
