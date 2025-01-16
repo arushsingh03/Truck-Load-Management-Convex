@@ -18,9 +18,12 @@
         {
           "icon": "./assets/icon.png",
           "color": "#f9f8fb",
-          "sounds": ["./assets/notification.wav"]
+          "sounds": [
+            "./assets/notification.wav"
+          ]
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "ios": {
       "supportsTablet": true,

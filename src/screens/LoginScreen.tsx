@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAction } from "convex/react";
 import { Button } from "../components/Button";
 import { useAuthStore } from "../store/authStore";
 import { api } from "../../convex/_generated/api";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   View,
   StyleSheet,
@@ -15,22 +16,46 @@ import {
   SafeAreaView,
   TouchableOpacity,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
 } from "react-native";
-
 import { theme } from "../theme";
 
-export const LoginScreen = ({ navigation }: any) => {
+interface LoginScreenProps {
+  navigation: any;
+}
+
+export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   // @ts-ignore
   const login = useAction(api.auth.login);
-  // @ts-ignore
-  const requestPasswordReset = useAction(api.auth.requestPasswordReset);
   const setUser = useAuthStore((state) => state.setUser);
+
+  useEffect(() => {
+    checkStoredUser();
+  }, []);
+
+  const checkStoredUser = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem("@user_data");
+      if (storedUser) {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+        navigateToApp(userData.isAdmin);
+      }
+    } catch (error) {
+      console.error("Error checking stored user:", error);
+    } finally {
+      setIsInitializing(false);
+    }
+  };
 
   const validateInputs = () => {
     if (!phone.trim()) {
@@ -52,6 +77,10 @@ export const LoginScreen = ({ navigation }: any) => {
     return true;
   };
 
+  const navigateToApp = (isAdmin: boolean) => {
+    navigation.replace(isAdmin ? "AdminDashboard" : "UserDashboard");
+  };
+
   const handleLogin = async () => {
     try {
       setError("");
@@ -59,14 +88,13 @@ export const LoginScreen = ({ navigation }: any) => {
 
       setIsLoading(true);
       const userData = await login({ phone, password });
+
+      await AsyncStorage.setItem("@user_data", JSON.stringify(userData));
+
       const user = { ...userData, id: userData._id };
       setUser(user);
 
-      if (user.isAdmin) {
-        navigation.replace("AdminDashboard");
-      } else {
-        navigation.replace("UserDashboard");
-      }
+      navigateToApp(user.isAdmin);
     } catch (error: any) {
       const errorMessage = error.message || "An error occurred";
       if (errorMessage.includes("credentials")) {
@@ -89,9 +117,16 @@ export const LoginScreen = ({ navigation }: any) => {
       );
       return;
     }
-
     navigation.navigate("ResetPassword", { phone });
   };
+
+  if (isInitializing) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -100,7 +135,10 @@ export const LoginScreen = ({ navigation }: any) => {
         style={styles.background}
         resizeMode="cover"
       >
-        <View style={styles.container}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.container}
+        >
           <View style={styles.card}>
             <Image
               source={require("../../assets/logo.png")}
@@ -137,11 +175,12 @@ export const LoginScreen = ({ navigation }: any) => {
                 placeholder="Phone Number"
                 value={phone}
                 onChangeText={(text) => {
-                  setPhone(text);
+                  setPhone(text.replace(/[^0-9]/g, ""));
                   setError("");
                 }}
                 keyboardType="phone-pad"
                 maxLength={15}
+                editable={!isLoading}
               />
             </View>
 
@@ -161,10 +200,12 @@ export const LoginScreen = ({ navigation }: any) => {
                   setError("");
                 }}
                 secureTextEntry={!showPassword}
+                editable={!isLoading}
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
                 onPress={() => setShowPassword(!showPassword)}
+                disabled={isLoading}
               >
                 <Ionicons
                   name={showPassword ? "eye-off" : "eye"}
@@ -177,6 +218,7 @@ export const LoginScreen = ({ navigation }: any) => {
             <TouchableOpacity
               style={styles.forgotPasswordContainer}
               onPress={handleForgotPassword}
+              disabled={isLoading}
             >
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
@@ -196,7 +238,7 @@ export const LoginScreen = ({ navigation }: any) => {
               />
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </ImageBackground>
     </SafeAreaView>
   );
@@ -210,33 +252,16 @@ const styles = StyleSheet.create({
   background: {
     flex: 1,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+  },
   container: {
     flex: 1,
     padding: theme.spacing.lg,
     justifyContent: "center",
-  },
-  logo: {
-    width: 120,
-    height: 120,
-    alignSelf: "center",
-    marginBottom: 15,
-  },
-  slogan: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: theme.colors.secondary,
-    textAlign: "center",
-    marginBottom: theme.spacing.xl,
-  },
-  sloganline1: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: theme.colors.secondary,
-    textAlign: "center",
-  },
-  highlightText: {
-    fontWeight: "bold",
-    color: theme.colors.primary,
   },
   card: {
     backgroundColor: "rgba(255, 255, 255, 0.93)",
@@ -248,25 +273,45 @@ const styles = StyleSheet.create({
     shadowRadius: 3.84,
     elevation: 5,
   },
+  logo: {
+    width: 120,
+    height: 120,
+    alignSelf: "center",
+    marginBottom: 15,
+  },
+  sloganline1: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.colors.secondary,
+    textAlign: "center",
+  },
+  slogan: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: theme.colors.secondary,
+    textAlign: "center",
+    marginBottom: theme.spacing.xl,
+  },
+  highlightText: {
+    color: theme.colors.primary,
+  },
   inputContainer: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderColor: theme.colors.border,
     borderRadius: 8,
-    padding: 5,
+    padding: theme.spacing.sm,
     marginVertical: theme.spacing.sm,
+    backgroundColor: "#fff",
   },
-  buttonContainer: {
-    marginTop: theme.spacing.md,
+  icon: {
+    marginRight: theme.spacing.sm,
   },
   input: {
     flex: 1,
     fontSize: 16,
-    marginLeft: theme.spacing.md,
-  },
-  icon: {
-    marginRight: theme.spacing.sm,
+    color: theme.colors.text,
   },
   eyeIcon: {
     padding: theme.spacing.xs,
@@ -293,5 +338,8 @@ const styles = StyleSheet.create({
   forgotPasswordText: {
     color: theme.colors.primary,
     fontSize: 14,
+  },
+  buttonContainer: {
+    gap: theme.spacing.sm,
   },
 });

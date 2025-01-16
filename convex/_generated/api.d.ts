@@ -16,6 +16,7 @@ import type {
 import type * as auth from "../auth.js";
 import type * as functions_getLoads from "../functions/getLoads.js";
 import type * as loads from "../loads.js";
+import type * as storage from "../storage.js";
 import type * as users from "../users.js";
 import type * as utils from "../utils.js";
 
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   "functions/getLoads": typeof functions_getLoads;
   loads: typeof loads;
+  storage: typeof storage;
   users: typeof users;
   utils: typeof utils;
 }>;

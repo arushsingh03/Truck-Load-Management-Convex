@@ -75,11 +75,9 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
   const validateForm = useCallback(() => {
     const isValidContactNumber = editedLoad.contactNumber.trim() !== "";
-    const isValidStaffContactNumber =
-      editedLoad.staffContactNumber.trim() !== "";
+    const isValidStaffContactNumber = editedLoad.staffContactNumber.trim() !== "";
     const isValidWeight = !isNaN(editedLoad.weight) && editedLoad.weight > 0;
-    const isValidLength =
-      !isNaN(editedLoad.truckLength) && editedLoad.truckLength > 0;
+    const isValidLength = !isNaN(editedLoad.truckLength) && editedLoad.truckLength > 0;
 
     return (
       editedLoad.currentLocation.trim() !== "" &&
@@ -95,38 +93,22 @@ export const LoadCard: React.FC<LoadCardProps> = ({
     try {
       setIsDownloading(true);
 
-      console.log(
-        "Initial receiptStorageId:",
-        JSON.stringify(load.receiptStorageId)
-      );
-
       if (!load.receiptStorageId) {
         Alert.alert("Error", "No receipt available for download");
         return;
       }
 
-      console.log("Storage ID type:", typeof load.receiptStorageId);
-      console.log("Raw storage ID value:", load.receiptStorageId);
-
       let cleanStorageId = load.receiptStorageId;
-
-      console.log("Contains slash:", cleanStorageId.includes("/"));
-      console.log("Contains question mark:", cleanStorageId.includes("?"));
 
       if (cleanStorageId.includes("/")) {
         const parts = cleanStorageId.split("/");
-        console.log("Split by slash:", parts);
         cleanStorageId = parts[parts.length - 1];
       }
 
       if (cleanStorageId.includes("?")) {
         const parts = cleanStorageId.split("?");
-        console.log("Split by question mark:", parts);
         cleanStorageId = parts[0];
       }
-
-      console.log("Cleaned storage ID:", cleanStorageId);
-      console.log("Cleaned ID length:", cleanStorageId.length);
 
       if (!cleanStorageId) {
         Alert.alert("Error", "Storage ID is empty after cleaning");
@@ -139,10 +121,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       }
 
       if (cleanStorageId.length < 32) {
-        Alert.alert(
-          "Error",
-          `Storage ID too short: ${cleanStorageId.length} chars (need >= 32)`
-        );
+        Alert.alert("Error", `Storage ID too short: ${cleanStorageId.length} chars (need >= 32)`);
         return;
       }
 
@@ -150,8 +129,6 @@ export const LoadCard: React.FC<LoadCardProps> = ({
         const downloadUrl = await generateDownloadUrl({
           storageId: cleanStorageId,
         });
-
-        console.log("Download URL response:", downloadUrl);
 
         if (typeof downloadUrl === "string" && downloadUrl) {
           await Linking.openURL(downloadUrl);
@@ -166,9 +143,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       console.error("Full error details:", error);
       Alert.alert(
         "Error",
-        error instanceof Error
-          ? `Download failed: ${error.message}`
-          : "Failed to download receipt"
+        error instanceof Error ? `Download failed: ${error.message}` : "Failed to download receipt"
       );
     } finally {
       setIsDownloading(false);
@@ -188,14 +163,11 @@ export const LoadCard: React.FC<LoadCardProps> = ({
           throw new Error("No file URI available");
         }
 
-        console.log("Generating upload URL...");
         const uploadResult = await generateUploadUrl();
 
         if (!uploadResult?.uploadUrl || !uploadResult?.storageId) {
           throw new Error("Failed to get valid upload URL");
         }
-
-        console.log("Got storage ID:", uploadResult.storageId);
 
         const formData = new FormData();
         formData.append("file", {
@@ -204,7 +176,6 @@ export const LoadCard: React.FC<LoadCardProps> = ({
           name: file.name,
         } as any);
 
-        console.log("Uploading to URL:", uploadResult.uploadUrl);
         const uploadResponse = await fetch(uploadResult.uploadUrl, {
           method: "POST",
           body: formData,
@@ -215,13 +186,8 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
         if (!uploadResponse.ok) {
           const errorText = await uploadResponse.text();
-          console.error("Upload response error:", errorText);
-          throw new Error(
-            `Upload failed: ${uploadResponse.status} ${errorText}`
-          );
+          throw new Error(`Upload failed: ${uploadResponse.status} ${errorText}`);
         }
-
-        console.log("File uploaded successfully");
 
         await uploadReceipt({
           loadId: load._id,
@@ -234,9 +200,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       console.error("Upload error:", error);
       Alert.alert(
         "Upload Failed",
-        error instanceof Error
-          ? error.message
-          : "Failed to upload receipt. Please try again."
+        error instanceof Error ? error.message : "Failed to upload receipt. Please try again."
       );
     } finally {
       setIsUploading(false);
@@ -244,35 +208,28 @@ export const LoadCard: React.FC<LoadCardProps> = ({
   };
 
   const handleDelete = useCallback(() => {
-    Alert.alert(
-      "Confirm Delete",
-      "Are you sure you want to delete this load?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          onPress: async () => {
-            try {
-              await deleteLoad({ loadId: load._id });
-              onDelete(load._id);
-              Alert.alert("Success", "Load deleted successfully");
-            } catch (error) {
-              console.error(error);
-              Alert.alert("Error", "Failed to delete load");
-            }
-          },
-          style: "destructive",
+    Alert.alert("Confirm Delete", "Are you sure you want to delete this load?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        onPress: async () => {
+          try {
+            await deleteLoad({ loadId: load._id });
+            onDelete(load._id);
+            Alert.alert("Success", "Load deleted successfully");
+          } catch (error) {
+            console.error(error);
+            Alert.alert("Error", "Failed to delete load");
+          }
         },
-      ]
-    );
+        style: "destructive",
+      },
+    ]);
   }, [load._id, deleteLoad, onDelete]);
 
   const handleEditSubmit = async () => {
     if (!validateForm()) {
-      Alert.alert(
-        "Validation Error",
-        "Please fill in all required fields correctly"
-      );
+      Alert.alert("Validation Error", "Please fill in all required fields correctly");
       return;
     }
 
@@ -305,22 +262,14 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       <View style={styles.header}>
         <View style={styles.dateTimeContainer}>
           <View style={styles.dateTimeItem}>
-            <MaterialIcons
-              name="event"
-              size={20}
-              color={theme.colors.primary}
-            />
+            <MaterialIcons name="event" size={20} color={theme.colors.primary} />
             <Text style={styles.dateTimeText}>
               {dayjs(load.createdAt).format("MM/DD/YY")}
             </Text>
           </View>
           {(isAdmin || load.isOwner) && (
             <View style={styles.dateTimeItem}>
-              <MaterialIcons
-                name="timer"
-                size={20}
-                color={theme.colors.primary}
-              />
+              <MaterialIcons name="timer" size={20} color={theme.colors.primary} />
               <Text style={styles.dateTimeText}>
                 {/* @ts-ignore */}
                 {dayjs(load._creationTime).format("h:mm A")}
@@ -329,25 +278,15 @@ export const LoadCard: React.FC<LoadCardProps> = ({
           )}
         </View>
         <TouchableOpacity
-          style={[
-            styles.statusBadge,
-            !load.receiptStorageId && styles.noReceiptBadge,
-          ]}
+          style={[styles.statusBadge, !load.receiptStorageId && styles.noReceiptBadge]}
           onPress={load.receiptStorageId ? handleDownloadReceipt : undefined}
         >
           <MaterialIcons
             name={load.receiptStorageId ? "download" : "receipt-long"}
             size={16}
-            color={
-              load.receiptStorageId ? theme.colors.primary : theme.colors.error
-            }
+            color={load.receiptStorageId ? theme.colors.primary : theme.colors.error}
           />
-          <Text
-            style={[
-              styles.statusText,
-              !load.receiptStorageId && styles.noReceiptText,
-            ]}
-          >
+          <Text style={[styles.statusText, !load.receiptStorageId && styles.noReceiptText]}>
             {load.receiptStorageId ? "Download" : "No Receipt"}
           </Text>
         </TouchableOpacity>
@@ -355,11 +294,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
       <View style={styles.locationContainer}>
         <View style={styles.locationItem}>
-          <MaterialIcons
-            name="location-on"
-            size={24}
-            color={theme.colors.primary}
-          />
+          <MaterialIcons name="location-on" size={24} color={theme.colors.primary} />
           <View style={styles.locationTextContainer}>
             <Text style={styles.labelText}>From</Text>
             <Text style={styles.locationText}>{load.currentLocation}</Text>
@@ -372,11 +307,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
           style={styles.arrowIcon}
         />
         <View style={styles.locationItem}>
-          <MaterialIcons
-            name="location-on"
-            size={24}
-            color={theme.colors.primary}
-          />
+          <MaterialIcons name="location-on" size={24} color={theme.colors.primary} />
           <View style={styles.locationTextContainer}>
             <Text style={styles.labelText}>To</Text>
             <Text style={styles.locationText}>{load.destinationLocation}</Text>
@@ -393,8 +324,16 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       transparent={true}
       onRequestClose={() => setShowEditModal(false)}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
+      <TouchableOpacity
+        activeOpacity={1}
+        style={styles.modalContainer}
+        onPress={() => setShowEditModal(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.modalContent}
+          onPress={(e) => e.stopPropagation()}
+        >
           <ScrollView>
             <Text style={styles.modalTitle}>Edit Load</Text>
 
@@ -448,9 +387,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                   }))
                 }
               >
-                <Text style={styles.unitButtonText}>
-                  {editedLoad.weightUnit}
-                </Text>
+                <Text style={styles.unitButtonText}>{editedLoad.weightUnit}</Text>
               </TouchableOpacity>
             </View>
 
@@ -478,9 +415,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                   }))
                 }
               >
-                <Text style={styles.unitButtonText}>
-                  {editedLoad.lengthUnit}
-                </Text>
+                <Text style={styles.unitButtonText}>{editedLoad.lengthUnit}</Text>
               </TouchableOpacity>
             </View>
 
@@ -511,7 +446,6 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               keyboardType="phone-pad"
               placeholder="Enter staff contact number"
             />
-
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
@@ -536,8 +470,8 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               </TouchableOpacity>
             </View>
           </ScrollView>
-        </View>
-      </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
     </Modal>
   );
 
@@ -577,7 +511,13 @@ export const LoadCard: React.FC<LoadCardProps> = ({
             </View>
 
             <View style={styles.contactContainer}>
-              <TouchableOpacity style={styles.contactItem} onPress={handleCall}>
+              <TouchableOpacity 
+                style={styles.contactItem} 
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleCall();
+                }}
+              >
                 <MaterialIcons
                   name="phone"
                   size={20}
@@ -587,9 +527,12 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                   Phone: {load.contactNumber}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.contactItem}
-                onPress={handleStaffCall}
+              <TouchableOpacity 
+                style={styles.contactItem} 
+                onPress={(e) => {
+                  e.stopPropagation();
+                  handleStaffCall();
+                }}
               >
                 <MaterialIcons
                   name="phone"
@@ -607,7 +550,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                 <View style={styles.actionRow}>
                   <TouchableOpacity
                     style={[styles.actionButton, styles.editButton]}
-                    onPress={() => setShowEditModal(true)}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      setShowEditModal(true);
+                    }}
                   >
                     <MaterialIcons name="edit" size={20} color="#FFF" />
                     <Text style={styles.actionText}>Edit</Text>
@@ -615,7 +561,10 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
                   <TouchableOpacity
                     style={[styles.actionButton, styles.deleteButton]}
-                    onPress={handleDelete}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      handleDelete();
+                    }}
                   >
                     <MaterialIcons name="delete" size={20} color="#FFF" />
                     <Text style={styles.actionText}>Delete</Text>
@@ -626,22 +575,19 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               {!(isAdmin || load.isOwner) && (
                 <TouchableOpacity
                   style={[styles.actionButton, styles.uploadButton]}
-                  onPress={handleUploadReceipt}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    handleUploadReceipt();
+                  }}
                   disabled={isUploading}
                 >
                   {isUploading ? (
                     <ActivityIndicator color="#FFF" size="small" />
                   ) : (
                     <>
-                      <MaterialIcons
-                        name="upload-file"
-                        size={20}
-                        color="#FFF"
-                      />
+                      <MaterialIcons name="upload-file" size={20} color="#FFF" />
                       <Text style={styles.actionText}>
-                        {load.receiptStorageId
-                          ? "Update Receipt"
-                          : "Upload Receipt"}
+                        {load.receiptStorageId ? "Update Receipt" : "Upload Receipt"}
                       </Text>
                     </>
                   )}
@@ -750,7 +696,6 @@ const styles = StyleSheet.create({
   },
   arrowIcon: {
     marginHorizontal: theme.spacing.sm,
-    paddingRight: 25,
   },
   expandIcon: {
     alignSelf: "center",

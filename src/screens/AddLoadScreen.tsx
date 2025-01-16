@@ -1,10 +1,11 @@
 import { theme } from "../theme";
-import React, { useState, useEffect } from "react";
-import { useMutation } from "convex/react";
+import React, { useState, useEffect, useRef } from "react";
+import { useMutation, useQuery } from "convex/react";
 import { Button } from "../components/Button";
 import { api } from "../../convex/_generated/api";
 import { Picker } from "@react-native-picker/picker";
 import * as Notifications from "expo-notifications";
+import * as Device from "expo-device";
 import Constants from "expo-constants";
 import {
   View,
@@ -15,7 +16,13 @@ import {
   SafeAreaView,
   ImageBackground,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
+
+type NotificationSubscription = {
+  remove: () => void;
+};
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -25,10 +32,61 @@ Notifications.setNotificationHandler({
   }),
 });
 
+async function sendPushNotifications(userTokens: string[], loadData: any) {
+  try {
+    const messages = userTokens.map((token) => ({
+      to: token,
+      sound: "default",
+      title: "New Load Available! 🚛",
+      body: `From ${loadData.currentLocation} to ${loadData.destinationLocation}`,
+      data: {
+        type: "newLoad",
+        weight: `${loadData.weight} ${loadData.weightUnit}`,
+        truckLength: `${loadData.truckLength} ${loadData.lengthUnit}`,
+        contact: loadData.contactNumber,
+        currentLocation: loadData.currentLocation,
+        destinationLocation: loadData.destinationLocation,
+      },
+    }));
+
+    const chunks = [];
+    const chunkSize = 100;
+    for (let i = 0; i < messages.length; i += chunkSize) {
+      chunks.push(messages.slice(i, i + chunkSize));
+    }
+
+    await Promise.all(
+      chunks.map((chunk) =>
+        fetch("https://exp.host/--/api/v2/push/send", {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Accept-encoding": "gzip, deflate",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(chunk),
+        })
+      )
+    );
+  } catch (error) {
+    console.error("Error sending push notifications:", error);
+    throw new Error("Failed to send push notifications");
+  }
+}
+
 async function registerForPushNotificationsAsync() {
   let token;
 
-  if (Constants.isDevice) {
+  if (Platform.OS === "android") {
+    await Notifications.setNotificationChannelAsync("default", {
+      name: "default",
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: "#FF231F7C",
+    });
+  }
+
+  if (Device.isDevice) {
     const { status: existingStatus } =
       await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
@@ -39,7 +97,10 @@ async function registerForPushNotificationsAsync() {
     }
 
     if (finalStatus !== "granted") {
-      alert("Failed to get push token for push notification!");
+      Alert.alert(
+        "Permission Required",
+        "Push notifications permission is required to receive load updates."
+      );
       return;
     }
 
@@ -48,30 +109,32 @@ async function registerForPushNotificationsAsync() {
       throw new Error("Project ID is not configured");
     }
 
-    token = (
-      await Notifications.getExpoPushTokenAsync({
-        projectId: projectId,
-      })
-    ).data;
+    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
   } else {
-    alert("Must use physical device for Push Notifications");
-  }
-
-  if (Platform.OS === "android") {
-    Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF231F7C",
-    });
+    Alert.alert(
+      "Physical Device Required",
+      "Push notifications require a physical device to work."
+    );
   }
 
   return token;
 }
 
-export const AddLoadScreen = ({ navigation }: any) => {
+interface FormData {
+  currentLocation: string;
+  destinationLocation: string;
+  weight: string;
+  weightUnit: "kg" | "ton";
+  truckLength: string;
+  lengthUnit: "m" | "ft";
+  contactNumber: string;
+  staffContactNumber: string;
+}
+
+export const AddLoadScreen = ({ navigation }: { navigation: any }) => {
+  const [isLoading, setIsLoading] = useState(false);
   const [expoPushToken, setExpoPushToken] = useState("");
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     currentLocation: "",
     destinationLocation: "",
     weight: "",
@@ -83,65 +146,99 @@ export const AddLoadScreen = ({ navigation }: any) => {
   });
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    registerForPushNotificationsAsync().then((token) => {
-      if (token) {
-        setExpoPushToken(token);
-      }
-    });
-  }, []);
+  const notificationListener = useRef<NotificationSubscription | null>(null);
+  const responseListener = useRef<NotificationSubscription | null>(null);
 
+  const userTokens = useQuery(api.users.getAllPushTokens);
   const addLoad = useMutation(api.loads.addLoad);
 
-  async function scheduleNotification() {
-    setTimeout(async () => {
-      await Notifications.scheduleNotificationAsync({
-        content: {
-          title: "New Load Added! 🚛",
-          body: `Load from ${formData.currentLocation} to ${formData.destinationLocation} has been added successfully.`,
-          data: {
-            weight: `${formData.weight} ${formData.weightUnit}`,
-            truckLength: `${formData.truckLength} ${formData.lengthUnit}`,
-            contact: formData.contactNumber,
-            staffContactNumber: formData.staffContactNumber,
-          },
-        },
-        trigger: null,
-      });
-    }, 1000);
-  }
+  useEffect(() => {
+    registerForPushNotificationsAsync().then((token) => {
+      if (token) setExpoPushToken(token);
+    });
+
+    notificationListener.current = {
+      remove: Notifications.addNotificationReceivedListener((notification) => {
+        console.log("Notification received:", notification);
+      }).remove,
+    };
+
+    responseListener.current = {
+      remove: Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          console.log("Notification response:", response);
+        }
+      ).remove,
+    };
+
+    return () => {
+      if (notificationListener.current) {
+        notificationListener.current.remove();
+      }
+      if (responseListener.current) {
+        responseListener.current.remove();
+      }
+    };
+  }, []);
+
+  const validateForm = () => {
+    if (!formData.currentLocation || !formData.destinationLocation) {
+      setError("Location fields are required");
+      return false;
+    }
+    if (!formData.weight || !formData.truckLength) {
+      setError("Weight and truck length are required");
+      return false;
+    }
+    if (!formData.contactNumber || !formData.staffContactNumber) {
+      setError("Contact information is required");
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async () => {
     try {
-      if (!formData.currentLocation || !formData.destinationLocation) {
-        setError("Location fields are required");
+      setError("");
+      setIsLoading(true);
+
+      if (!validateForm()) {
+        setIsLoading(false);
         return;
       }
 
-      if (!formData.weight || !formData.truckLength) {
-        setError("Weight and truck length are required");
-        return;
-      }
-
-      if (!formData.contactNumber || !formData.staffContactNumber) {
-        setError("Contact information is required");
-        return;
-      }
-
-      await addLoad({
-        ...formData,
+      const newLoad = await addLoad({
+        currentLocation: formData.currentLocation,
+        destinationLocation: formData.destinationLocation,
         weight: parseFloat(formData.weight),
         truckLength: parseFloat(formData.truckLength),
-        weightUnit: formData.weightUnit as "kg" | "ton",
-        lengthUnit: formData.lengthUnit as "ft" | "m",
+        weightUnit: formData.weightUnit,
+        lengthUnit: formData.lengthUnit,
+        contactNumber: formData.contactNumber,
         staffContactNumber: formData.staffContactNumber,
       });
 
-      await scheduleNotification();
+      if (userTokens && userTokens.length > 0) {
+        await sendPushNotifications(userTokens, formData);
+      }
 
-      navigation.goBack();
-    } catch (error: any) {
-      setError(error.message);
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title: "New Load Added! 🚛",
+          body: `Load from ${formData.currentLocation} to ${formData.destinationLocation} has been added.`,
+          data: { ...formData },
+        },
+        trigger: null,
+      });
+
+      Alert.alert("Success", "Load has been added successfully!", [
+        { text: "OK", onPress: () => navigation.goBack() },
+      ]);
+    } catch (error) {
+      console.error("Error adding load:", error);
+      setError("Failed to add load. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -165,6 +262,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 onChangeText={(value) =>
                   setFormData({ ...formData, currentLocation: value })
                 }
+                editable={!isLoading}
               />
             </View>
 
@@ -176,6 +274,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 onChangeText={(value) =>
                   setFormData({ ...formData, destinationLocation: value })
                 }
+                editable={!isLoading}
               />
             </View>
 
@@ -188,6 +287,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                   setFormData({ ...formData, weight: value })
                 }
                 keyboardType="numeric"
+                editable={!isLoading}
               />
               <Picker
                 selectedValue={formData.weightUnit}
@@ -195,6 +295,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 onValueChange={(value) =>
                   setFormData({ ...formData, weightUnit: value })
                 }
+                enabled={!isLoading}
               >
                 <Picker.Item label="kg" value="kg" />
                 <Picker.Item label="ton" value="ton" />
@@ -210,6 +311,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                   setFormData({ ...formData, truckLength: value })
                 }
                 keyboardType="numeric"
+                editable={!isLoading}
               />
               <Picker
                 selectedValue={formData.lengthUnit}
@@ -217,6 +319,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 onValueChange={(value) =>
                   setFormData({ ...formData, lengthUnit: value })
                 }
+                enabled={!isLoading}
               >
                 <Picker.Item label="m" value="m" />
                 <Picker.Item label="ft" value="ft" />
@@ -232,6 +335,7 @@ export const AddLoadScreen = ({ navigation }: any) => {
                   setFormData({ ...formData, contactNumber: value })
                 }
                 keyboardType="phone-pad"
+                editable={!isLoading}
               />
             </View>
 
@@ -243,11 +347,24 @@ export const AddLoadScreen = ({ navigation }: any) => {
                 onChangeText={(value) =>
                   setFormData({ ...formData, staffContactNumber: value })
                 }
-                keyboardType="number-pad"
+                keyboardType="phone-pad"
+                editable={!isLoading}
               />
             </View>
 
-            <Button title="Add Load" onPress={handleSubmit} />
+            <Button
+              title={isLoading ? "Adding Load..." : "Add Load"}
+              onPress={handleSubmit}
+              disabled={isLoading}
+            />
+
+            {isLoading && (
+              <ActivityIndicator
+                style={styles.loader}
+                size="large"
+                color={theme.colors.primary}
+              />
+            )}
           </View>
         </ScrollView>
       </ImageBackground>
@@ -314,5 +431,8 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.md,
     textAlign: "center",
     fontSize: 14,
+  },
+  loader: {
+    marginTop: theme.spacing.md,
   },
 });

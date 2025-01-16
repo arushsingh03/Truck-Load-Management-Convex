@@ -1,6 +1,5 @@
 import { v } from 'convex/values';
 import { mutation, query } from './_generated/server';
-import { hashPassword } from './utils';
 
 export const insertUser = mutation({
     args: {
@@ -209,6 +208,19 @@ export const getDocumentUrl = query({
         }
     },
 });
+
+export const getAllPushTokens = query({
+    args: {},
+    handler: async (ctx) => {
+      const users = await ctx.db
+        .query("users")
+        .filter((q) => q.neq(q.field("pushToken"), null))
+        .collect();
+      return users
+        .map(user => user.pushToken)
+        .filter((token): token is string => token !== undefined);
+    },
+  });
 
 export const getUserStatistics = query({
     args: {},

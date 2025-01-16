@@ -6,6 +6,7 @@ import { AppNavigator } from "./src/navigation/AppNavigator";
 import { View, Text, ActivityIndicator } from "react-native";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -74,8 +75,10 @@ export default function App() {
   const [error, setError] = React.useState<Error | null>(null);
   const [convexClient, setConvexClient] =
     React.useState<ConvexReactClient | null>(null);
+  const [isAuthChecked, setIsAuthChecked] = React.useState(false);
 
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
+  const setUser = useAuthStore((state) => state.setUser);
 
   React.useEffect(() => {
     async function initialize() {
@@ -83,7 +86,14 @@ export default function App() {
         const client = initializeConvexClient();
         setConvexClient(client);
 
+        const storedUser = await AsyncStorage.getItem("@user_data");
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          setUser(userData);
+        }
+
         await initializeAuth();
+        setIsAuthChecked(true);
 
         await SplashScreen.hideAsync();
 

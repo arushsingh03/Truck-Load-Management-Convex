@@ -18,6 +18,7 @@ export default defineSchema({
         isApproved: v.boolean(),
         documentStorageId: v.optional(v.string()),
         createdAt: v.string(),
+        pushToken: v.optional(v.string()),
     }),
     loads: defineTable({
         currentLocation: v.string(),
