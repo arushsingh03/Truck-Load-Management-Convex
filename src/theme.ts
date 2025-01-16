@@ -6,7 +6,7 @@ export const theme = {
     text: "#000000",
     error: "#FF0000",
     border: "#CCCCCC",
-    tertiary: "#F0F0F0",
+    tertiary: "#e5e7eb",
     success: "#28A745",
     warning: "#FFC107",
     danger: "#DC3545",

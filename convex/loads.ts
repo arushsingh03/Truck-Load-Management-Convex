@@ -70,131 +70,6 @@ export const getLoads = query({
   },
 });
 
-
-export const generateUploadUrl = mutation({
-  async handler(ctx) {
-    try {
-      const uploadUrl = await ctx.storage.generateUploadUrl();
-      console.log('Generated upload URL:', uploadUrl);
-
-      const url = new URL(uploadUrl);
-      const token = url.searchParams.get('token');
-
-      if (!token) {
-        throw new Error('No token found in upload URL');
-      }
-
-      const storageId = token;
-
-      if (!storageId || storageId.length < 32) {
-        console.error('Invalid storage ID/token:', storageId);
-        throw new Error('Invalid storage ID format received from server');
-      }
-
-      console.log('Valid storage ID extracted:', storageId);
-      return { uploadUrl, storageId };
-    } catch (error) {
-      console.error('Upload URL generation error:', error);
-      throw new Error('Failed to generate upload URL. Please try again.');
-    }
-  },
-});
-
-export const uploadReceipt = mutation({
-  args: {
-    loadId: v.id('loads'),
-    storageId: v.string(),
-  },
-  async handler(ctx, args) {
-    const load = await ctx.db.get(args.loadId);
-    if (!load) {
-      throw new Error('Load not found');
-    }
-
-    if (!args.storageId || args.storageId.length < 32) {
-      throw new Error('Invalid storage ID format');
-    }
-
-    console.log('Saving receipt with storage ID:', args.storageId);
-
-    await ctx.db.patch(args.loadId, {
-      receiptStorageId: args.storageId,
-    });
-
-    return load;
-  },
-});
-
-export const generateDownloadUrl = mutation({
-  args: {
-    storageId: v.string(),
-  },
-  async handler(ctx, args) {
-    try {
-      console.log('Generating download URL for storage ID:', args.storageId);
-
-      const cleanStorageId = args.storageId.split('?')[0].split('/').pop() || '';
-      console.log('Cleaned storage ID:', cleanStorageId);
-
-      if (!cleanStorageId ||
-        cleanStorageId === 'upload' ||
-        cleanStorageId.length < 32 ||
-        !/^[0-9a-f-]+$/i.test(cleanStorageId)) {
-        console.error('Invalid storage ID provided:', cleanStorageId);
-        throw new Error(`Invalid storage ID format: ${cleanStorageId}`);
-      }
-
-      const downloadUrl = await ctx.storage.getUrl(cleanStorageId);
-      console.log('Generated download URL:', downloadUrl);
-
-      if (!downloadUrl) {
-        throw new Error('Failed to generate download URL: Empty URL returned');
-      }
-
-      return downloadUrl;
-    } catch (error) {
-      console.error('Download URL generation error:', error);
-
-      if (error instanceof Error) {
-        if (error.message.includes('Invalid storage ID')) {
-          throw new Error(`Invalid storage ID format: ${args.storageId}`);
-        } else if (error.message.includes('not found')) {
-          throw new Error(`File not found for storage ID: ${args.storageId}`);
-        }
-      }
-
-      throw new Error('Failed to generate download URL. Please ensure the file exists and the storage ID is valid.');
-    }
-  },
-});
-
-
-export const deleteLoad = mutation({
-  args: {
-    loadId: v.id('loads'),
-  },
-  async handler(ctx, args) {
-    const load = await ctx.db.get(args.loadId);
-    if (!load) {
-      throw new Error('Load not found');
-    }
-
-    if (load.receiptStorageId) {
-      try {
-        const actualStorageId = load.receiptStorageId.includes('token=')
-          ? load.receiptStorageId.split('token=')[1]
-          : load.receiptStorageId;
-
-        await ctx.storage.delete(actualStorageId);
-      } catch (error) {
-        console.error('Storage deletion error:', error);
-      }
-    }
-
-    await ctx.db.delete(args.loadId);
-  },
-});
-
 export const updateLoad = mutation({
   args: {
     loadId: v.id('loads'),
@@ -314,5 +189,119 @@ export const getReceiptStorageIds = query({
       storageId: load.receiptStorageId || '',
       createdAt: load.createdAt
     })).filter(item => item.storageId !== '');
+  },
+});
+
+export const generateUploadUrl = mutation({
+  async handler(ctx) {
+    try {
+      const uploadUrl = await ctx.storage.generateUploadUrl();
+      console.log('Generated upload URL:', uploadUrl);
+
+      const storageId = uploadUrl.split('/').pop()?.split('?')[0];
+
+      if (!storageId) {
+        throw new Error('No storage ID found in upload URL');
+      }
+
+      console.log('Valid storage ID extracted:', storageId);
+      return { uploadUrl, storageId };
+    } catch (error) {
+      console.error('Upload URL generation error:', error);
+      throw new Error('Failed to generate upload URL. Please try again.');
+    }
+  },
+});
+
+export const uploadReceipt = mutation({
+  args: {
+    loadId: v.id('loads'),
+    storageId: v.string(),
+  },
+  async handler(ctx, args) {
+    const load = await ctx.db.get(args.loadId);
+    if (!load) {
+      throw new Error('Load not found');
+    }
+
+    const storageId = args.storageId.split('/').pop()?.split('?')[0];
+
+    if (!storageId) {
+      throw new Error('Invalid storage ID format');
+    }
+
+    console.log('Saving receipt with storage ID:', storageId);
+
+    await ctx.db.patch(args.loadId, {
+      receiptStorageId: storageId,
+    });
+
+    return load;
+  },
+});
+
+export const generateDownloadUrl = mutation({
+  args: {
+    storageId: v.string(),
+  },
+  async handler(ctx, args) {
+    try {
+      console.log('Generating download URL for storage ID:', args.storageId);
+
+      const cleanStorageId = args.storageId.split('/').pop()?.split('?')[0] || '';
+      console.log('Cleaned storage ID:', cleanStorageId);
+
+      if (!cleanStorageId ||
+        cleanStorageId === 'upload' ||
+        cleanStorageId.length < 32) {
+        throw new Error(`Invalid storage ID format: ${cleanStorageId}`);
+      }
+
+      const downloadUrl = await ctx.storage.getUrl(cleanStorageId);
+      console.log('Generated download URL:', downloadUrl);
+
+      if (!downloadUrl) {
+        throw new Error('Failed to generate download URL: Empty URL returned');
+      }
+
+      return downloadUrl;
+    } catch (error) {
+      console.error('Download URL generation error:', error);
+
+      if (error instanceof Error) {
+        if (error.message.includes('Invalid storage ID')) {
+          throw new Error(`Invalid storage ID format: ${args.storageId}`);
+        } else if (error.message.includes('not found')) {
+          throw new Error(`File not found for storage ID: ${args.storageId}`);
+        }
+      }
+
+      throw new Error('Failed to generate download URL. Please ensure the file exists and the storage ID is valid.');
+    }
+  },
+});
+
+export const deleteLoad = mutation({
+  args: {
+    loadId: v.id('loads'),
+  },
+  async handler(ctx, args) {
+    const load = await ctx.db.get(args.loadId);
+    if (!load) {
+      throw new Error('Load not found');
+    }
+
+    if (load.receiptStorageId) {
+      try {
+        const storageId = load.receiptStorageId.split('/').pop()?.split('?')[0];
+        if (storageId) {
+          await ctx.storage.delete(storageId);
+        }
+      } catch (error) {
+        console.error('Storage deletion error:', error);
+      }
+    }
+
+    await ctx.db.delete(args.loadId);
   },
 });

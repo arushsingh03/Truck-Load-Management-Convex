@@ -28,7 +28,7 @@ export default defineSchema({
         truckLength: v.number(),
         lengthUnit: v.union(v.literal('m'), v.literal('ft')),
         contactNumber: v.string(),
-        staffContactNumber: v.string(), 
+        staffContactNumber: v.string(),
         createdAt: v.string(),
         receiptStorageId: v.optional(v.string()),
         isOwner: v.optional(v.boolean()),
