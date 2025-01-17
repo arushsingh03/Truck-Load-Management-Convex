@@ -9,20 +9,38 @@ const NotificationBell = ({ onPress }: { onPress: () => void }) => {
   const lastCheckedAt = dayjs()
     .subtract(24, "hours")
     .format("YYYY-MM-DD HH:mm:ss");
-  const newReceipts = useQuery(api.loads.getNewReceipts, { lastCheckedAt });
-  const count = newReceipts?.length || 0;
+
+  const newLoadReceipts = useQuery(api.loads.getNewReceipts, { lastCheckedAt });
+  const allStorageIds = useQuery(api.loads.getReceiptStorageIds);
+
+  const standaloneReceipts =
+    allStorageIds?.filter((receipt) => {
+      const receiptDate = dayjs(receipt.createdAt);
+      const lastCheck = dayjs(lastCheckedAt);
+      return receiptDate.isAfter(lastCheck);
+    }) ?? [];
+
+  const loadReceiptsCount = newLoadReceipts?.length || 0;
+  const standaloneReceiptsCount = standaloneReceipts.length;
+  const totalCount = loadReceiptsCount + standaloneReceiptsCount;
 
   return (
-    <TouchableOpacity onPress={onPress} style={styles.container}>
+    <TouchableOpacity
+      onPress={onPress}
+      style={styles.container}
+      accessibilityLabel={`Notifications: ${totalCount} new receipts`}
+      accessibilityRole="button"
+    >
       <MaterialIcons name="notifications" size={24} color="#333" />
-      {count > 0 && (
+      {totalCount > 0 && (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{count}</Text>
+          <Text style={styles.badgeText}>{totalCount}</Text>
         </View>
       )}
     </TouchableOpacity>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     padding: 8,
@@ -38,11 +56,13 @@ const styles = StyleSheet.create({
     height: 20,
     justifyContent: "center",
     alignItems: "center",
+    padding: 2,
   },
   badgeText: {
     color: "white",
     fontSize: 12,
     fontWeight: "bold",
+    textAlign: "center",
   },
 });
 

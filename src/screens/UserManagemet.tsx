@@ -16,6 +16,7 @@ import { useQuery, useMutation } from "convex/react";
 import { Id } from "../../convex/_generated/dataModel";
 import { MaterialIcons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
+import DocumentViewer from "../components/DocumentView";
 
 const UserStatistics = () => {
   const stats = useQuery(api.users.getUserStatistics);
@@ -51,8 +52,8 @@ const UserCard = ({
 }) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const documentUrl = useQuery(api.users.getDocumentUrl, { 
-    storageId: user.documentStorageId 
+  const documentUrl = useQuery(api.users.getDocumentUrl, {
+    storageId: user.documentStorageId,
   });
 
   const handleCall = () => {
@@ -69,25 +70,9 @@ const UserCard = ({
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>User Document</Text>
-          
+
           <View style={styles.documentContainer}>
-            {documentUrl ? (
-              <View style={styles.documentWrapper}>
-                <Text style={styles.documentText}>
-                  Document URL: {documentUrl}
-                </Text>
-                <TouchableOpacity
-                  style={styles.documentButton}
-                  onPress={() => Linking.openURL(documentUrl)}
-                >
-                  <Text style={styles.documentButtonText}>Open Document</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <Text style={styles.noDocumentText}>
-                No document available
-              </Text>
-            )}
+            <DocumentViewer storageId={user.documentStorageId} />
           </View>
 
           <TouchableOpacity
@@ -100,7 +85,6 @@ const UserCard = ({
       </View>
     </Modal>
   );
-
   const DetailsModal = () => (
     <Modal
       visible={showDetailsModal}
@@ -192,7 +176,9 @@ const UserCard = ({
           <MaterialIcons
             name={user.isApproved ? "check-circle" : "pending"}
             size={16}
-            color={user.isApproved ? theme.colors.success : theme.colors.warning}
+            color={
+              user.isApproved ? theme.colors.success : theme.colors.warning
+            }
           />
           <Text
             style={[
@@ -241,8 +227,12 @@ const UserCard = ({
           style={styles.documentButton}
           onPress={() => setShowDocumentModal(true)}
         >
-          <MaterialIcons name="description" size={20} color={theme.colors.light} />
-          <Text style={styles.documentButtonText}>View</Text>
+          <MaterialIcons
+            name="description"
+            size={20}
+            color={theme.colors.light}
+          />
+          <Text style={styles.documentButtonText}>Review</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -330,7 +320,7 @@ const styles = StyleSheet.create({
     marginVertical: theme.spacing.lg,
   },
   documentWrapper: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   documentText: {
     fontSize: 14,
@@ -341,21 +331,21 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     padding: theme.spacing.sm,
     borderRadius: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     marginLeft: theme.spacing.sm,
   },
   documentButtonText: {
     color: theme.colors.light,
     marginLeft: theme.spacing.sm,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   noDocumentText: {
     fontSize: 16,
     color: theme.colors.text,
-    textAlign: 'center',
-    fontStyle: 'italic',
+    textAlign: "center",
+    fontStyle: "italic",
   },
   statLabel: {
     fontSize: 14,
@@ -545,6 +535,6 @@ const styles = StyleSheet.create({
     color: theme.colors.light,
     fontSize: 16,
     fontWeight: "600",
+    textAlign: "center",
   },
 });
-

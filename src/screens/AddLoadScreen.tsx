@@ -36,7 +36,7 @@ async function sendPushNotifications(userTokens: string[], loadData: any) {
   try {
     const messages = userTokens.map((token) => ({
       to: token,
-      sound: "default",
+      sound: "notification.wav",
       title: "New Load Available! 🚛",
       body: `From ${loadData.currentLocation} to ${loadData.destinationLocation}`,
       data: {

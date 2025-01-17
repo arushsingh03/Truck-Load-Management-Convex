@@ -107,23 +107,6 @@ export const generateStandaloneUploadUrl = mutation({
   },
 });
 
-export const saveStandaloneReceipt = mutation({
-  args: {
-    storageId: v.string(),
-  },
-  async handler(ctx, args) {
-    const receiptData = {
-      storageId: args.storageId,
-      uploadTime: dayjs().format('YYYY-MM-DD HH:mm:ss')
-    };
-
-    return {
-      success: true,
-      storageId: args.storageId
-    };
-  },
-});
-
 export const getNewReceipts = query({
   args: {
     lastCheckedAt: v.string(),
@@ -139,56 +122,6 @@ export const getNewReceipts = query({
         )
       )
       .collect();
-  },
-});
-
-export const deleteStandaloneReceipt = mutation({
-  args: {
-    storageId: v.string(),
-  },
-  async handler(ctx, args) {
-    try {
-      const actualStorageId = args.storageId.includes('token=')
-        ? args.storageId.split('token=')[1].split('&')[0]
-        : args.storageId;
-
-      await ctx.storage.delete(actualStorageId);
-
-      const loads = await ctx.db
-        .query('loads')
-        .filter(q => q.eq(q.field('receiptStorageId'), args.storageId))
-        .collect();
-
-      for (const load of loads) {
-        await ctx.db.patch(load._id, {
-          receiptStorageId: undefined
-        });
-      }
-
-      return { success: true };
-    } catch (error: unknown) {
-      console.error('Receipt deletion error:', error);
-      if (error instanceof Error) {
-        throw new Error('Failed to delete receipt: ' + error.message);
-      } else {
-        throw new Error('Failed to delete receipt: Unknown error');
-      }
-    }
-  },
-});
-
-export const getReceiptStorageIds = query({
-  args: {},
-  async handler(ctx) {
-    const loads = await ctx.db
-      .query('loads')
-      .filter(q => q.neq(q.field('receiptStorageId'), undefined))
-      .collect();
-
-    return loads.map(load => ({
-      storageId: load.receiptStorageId || '',
-      createdAt: load.createdAt
-    })).filter(item => item.storageId !== '');
   },
 });
 
@@ -303,5 +236,93 @@ export const deleteLoad = mutation({
     }
 
     await ctx.db.delete(args.loadId);
+  },
+});
+
+export const saveStandaloneReceipt = mutation({
+  args: {
+    storageId: v.string(),
+  },
+  async handler(ctx, args) {
+    const receiptData = await ctx.db.insert('receipts', {
+      storageId: args.storageId,
+      createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      type: 'standalone'
+    });
+
+    return {
+      success: true,
+      storageId: args.storageId,
+      receiptData
+    };
+  },
+});
+
+export const getReceiptStorageIds = query({
+  args: {},
+  async handler(ctx) {
+    const loads = await ctx.db
+      .query('loads')
+      .filter(q => q.neq(q.field('receiptStorageId'), undefined))
+      .collect();
+
+    const standaloneReceipts = await ctx.db
+      .query('receipts')
+      .collect();
+
+    const loadReceipts = loads
+      .filter(load => load.receiptStorageId)
+      .map(load => ({
+        storageId: load.receiptStorageId || '',
+        createdAt: load.createdAt,
+        type: 'load'
+      }));
+
+    const allReceipts = [
+      ...loadReceipts,
+      ...standaloneReceipts
+    ].filter(item => item.storageId !== '');
+
+    return allReceipts;
+  },
+});
+
+export const deleteStandaloneReceipt = mutation({
+  args: {
+    storageId: v.string(),
+  },
+  async handler(ctx, args) {
+    try {
+      const actualStorageId = args.storageId.includes('token=')
+        ? args.storageId.split('token=')[1].split('&')[0]
+        : args.storageId;
+
+      await ctx.storage.delete(actualStorageId);
+
+      const loads = await ctx.db
+        .query('loads')
+        .filter(q => q.eq(q.field('receiptStorageId'), args.storageId))
+        .collect();
+
+      for (const load of loads) {
+        await ctx.db.patch(load._id, {
+          receiptStorageId: undefined
+        });
+      }
+
+      const receipts = await ctx.db
+        .query('receipts')
+        .filter(q => q.eq(q.field('storageId'), args.storageId))
+        .collect();
+
+      for (const receipt of receipts) {
+        await ctx.db.delete(receipt._id);
+      }
+
+      return { success: true };
+    } catch (error: unknown) {
+      console.error('Receipt deletion error:', error);
+      throw new Error('Failed to delete receipt: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    }
   },
 });

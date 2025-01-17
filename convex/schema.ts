@@ -33,4 +33,9 @@ export default defineSchema({
         receiptStorageId: v.optional(v.string()),
         isOwner: v.optional(v.boolean()),
     }),
+    receipts: defineTable({
+        storageId: v.string(),
+        createdAt: v.string(),
+        type: v.string(),
+    }),
 });
