@@ -75,9 +75,11 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
   const validateForm = useCallback(() => {
     const isValidContactNumber = editedLoad.contactNumber.trim() !== "";
-    const isValidStaffContactNumber = editedLoad.staffContactNumber.trim() !== "";
+    const isValidStaffContactNumber =
+      editedLoad.staffContactNumber.trim() !== "";
     const isValidWeight = !isNaN(editedLoad.weight) && editedLoad.weight > 0;
-    const isValidLength = !isNaN(editedLoad.truckLength) && editedLoad.truckLength > 0;
+    const isValidLength =
+      !isNaN(editedLoad.truckLength) && editedLoad.truckLength > 0;
 
     return (
       editedLoad.currentLocation.trim() !== "" &&
@@ -92,58 +94,49 @@ export const LoadCard: React.FC<LoadCardProps> = ({
   const handleDownloadReceipt = async () => {
     try {
       setIsDownloading(true);
-
+  
       if (!load.receiptStorageId) {
         Alert.alert("Error", "No receipt available for download");
         return;
       }
-
-      let cleanStorageId = load.receiptStorageId;
-
-      if (cleanStorageId.includes("/")) {
-        const parts = cleanStorageId.split("/");
-        cleanStorageId = parts[parts.length - 1];
-      }
-
-      if (cleanStorageId.includes("?")) {
-        const parts = cleanStorageId.split("?");
-        cleanStorageId = parts[0];
-      }
-
-      if (!cleanStorageId) {
-        Alert.alert("Error", "Storage ID is empty after cleaning");
-        return;
-      }
-
-      if (cleanStorageId === "upload") {
-        Alert.alert("Error", "Invalid storage ID: 'upload' is not valid");
-        return;
-      }
-
-      if (cleanStorageId.length < 32) {
-        Alert.alert("Error", `Storage ID too short: ${cleanStorageId.length} chars (need >= 32)`);
-        return;
-      }
-
-      try {
-        const downloadUrl = await generateDownloadUrl({
-          storageId: cleanStorageId,
-        });
-
-        if (typeof downloadUrl === "string" && downloadUrl) {
-          await Linking.openURL(downloadUrl);
-        } else {
-          throw new Error(`Invalid download URL format: ${typeof downloadUrl}`);
+  
+      let storageId = load.receiptStorageId;
+  
+      if (storageId.startsWith('kg')) {
+        storageId = storageId;
+      } else {
+        if (storageId.includes('?')) {
+          storageId = storageId.split('?')[0];
         }
-      } catch (downloadError) {
-        console.error("Download URL generation error:", downloadError);
-        throw downloadError;
+        
+        if (storageId.includes("token=")) {
+          storageId = storageId.split("token=")[1].split("&")[0];
+        }
+        
+        storageId = storageId.split("/").pop() || storageId;
+      }
+  
+      if (!storageId) {
+        throw new Error("Invalid storage ID format");
+      }
+  
+      const downloadUrl = await generateDownloadUrl({
+        storageId: storageId,
+      });
+  
+      if (typeof downloadUrl === "string" && downloadUrl) {
+        await Linking.openURL(downloadUrl);
+      } else {
+        throw new Error(`Invalid download URL format: ${typeof downloadUrl}`);
       }
     } catch (error) {
-      console.error("Full error details:", error);
+      console.error("Download error:", error);
+      
       Alert.alert(
         "Error",
-        error instanceof Error ? `Download failed: ${error.message}` : "Failed to download receipt"
+        error instanceof Error
+          ? `Download failed: ${error.message}`
+          : "Failed to download receipt"
       );
     } finally {
       setIsDownloading(false);
@@ -164,7 +157,6 @@ export const LoadCard: React.FC<LoadCardProps> = ({
         }
 
         const uploadResult = await generateUploadUrl();
-
         if (!uploadResult?.uploadUrl || !uploadResult?.storageId) {
           throw new Error("Failed to get valid upload URL");
         }
@@ -185,13 +177,16 @@ export const LoadCard: React.FC<LoadCardProps> = ({
         });
 
         if (!uploadResponse.ok) {
-          const errorText = await uploadResponse.text();
-          throw new Error(`Upload failed: ${uploadResponse.status} ${errorText}`);
+          throw new Error(`Upload failed: ${uploadResponse.status}`);
         }
+
+        const cleanStorageId =
+          uploadResult.storageId.split("/").pop()?.split("?")[0] ||
+          uploadResult.storageId;
 
         await uploadReceipt({
           loadId: load._id,
-          storageId: uploadResult.storageId,
+          storageId: cleanStorageId,
         });
 
         Alert.alert("Success", "Receipt uploaded successfully");
@@ -200,36 +195,44 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       console.error("Upload error:", error);
       Alert.alert(
         "Upload Failed",
-        error instanceof Error ? error.message : "Failed to upload receipt. Please try again."
+        error instanceof Error
+          ? error.message
+          : "Failed to upload receipt. Please try again."
       );
     } finally {
       setIsUploading(false);
     }
   };
-
   const handleDelete = useCallback(() => {
-    Alert.alert("Confirm Delete", "Are you sure you want to delete this load?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        onPress: async () => {
-          try {
-            await deleteLoad({ loadId: load._id });
-            onDelete(load._id);
-            Alert.alert("Success", "Load deleted successfully");
-          } catch (error) {
-            console.error(error);
-            Alert.alert("Error", "Failed to delete load");
-          }
+    Alert.alert(
+      "Confirm Delete",
+      "Are you sure you want to delete this load?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          onPress: async () => {
+            try {
+              await deleteLoad({ loadId: load._id });
+              onDelete(load._id);
+              Alert.alert("Success", "Load deleted successfully");
+            } catch (error) {
+              console.error(error);
+              Alert.alert("Error", "Failed to delete load");
+            }
+          },
+          style: "destructive",
         },
-        style: "destructive",
-      },
-    ]);
+      ]
+    );
   }, [load._id, deleteLoad, onDelete]);
 
   const handleEditSubmit = async () => {
     if (!validateForm()) {
-      Alert.alert("Validation Error", "Please fill in all required fields correctly");
+      Alert.alert(
+        "Validation Error",
+        "Please fill in all required fields correctly"
+      );
       return;
     }
 
@@ -262,14 +265,22 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       <View style={styles.header}>
         <View style={styles.dateTimeContainer}>
           <View style={styles.dateTimeItem}>
-            <MaterialIcons name="event" size={20} color={theme.colors.primary} />
+            <MaterialIcons
+              name="event"
+              size={20}
+              color={theme.colors.primary}
+            />
             <Text style={styles.dateTimeText}>
               {dayjs(load.createdAt).format("MM/DD/YY")}
             </Text>
           </View>
           {(isAdmin || load.isOwner) && (
             <View style={styles.dateTimeItem}>
-              <MaterialIcons name="timer" size={20} color={theme.colors.primary} />
+              <MaterialIcons
+                name="timer"
+                size={20}
+                color={theme.colors.primary}
+              />
               <Text style={styles.dateTimeText}>
                 {/* @ts-ignore */}
                 {dayjs(load._creationTime).format("h:mm A")}
@@ -278,15 +289,25 @@ export const LoadCard: React.FC<LoadCardProps> = ({
           )}
         </View>
         <TouchableOpacity
-          style={[styles.statusBadge, !load.receiptStorageId && styles.noReceiptBadge]}
+          style={[
+            styles.statusBadge,
+            !load.receiptStorageId && styles.noReceiptBadge,
+          ]}
           onPress={load.receiptStorageId ? handleDownloadReceipt : undefined}
         >
           <MaterialIcons
             name={load.receiptStorageId ? "download" : "receipt-long"}
             size={16}
-            color={load.receiptStorageId ? theme.colors.primary : theme.colors.error}
+            color={
+              load.receiptStorageId ? theme.colors.primary : theme.colors.error
+            }
           />
-          <Text style={[styles.statusText, !load.receiptStorageId && styles.noReceiptText]}>
+          <Text
+            style={[
+              styles.statusText,
+              !load.receiptStorageId && styles.noReceiptText,
+            ]}
+          >
             {load.receiptStorageId ? "Download" : "No Receipt"}
           </Text>
         </TouchableOpacity>
@@ -294,7 +315,11 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
       <View style={styles.locationContainer}>
         <View style={styles.locationItem}>
-          <MaterialIcons name="location-on" size={24} color={theme.colors.primary} />
+          <MaterialIcons
+            name="location-on"
+            size={24}
+            color={theme.colors.primary}
+          />
           <View style={styles.locationTextContainer}>
             <Text style={styles.labelText}>From</Text>
             <Text style={styles.locationText}>{load.currentLocation}</Text>
@@ -307,7 +332,11 @@ export const LoadCard: React.FC<LoadCardProps> = ({
           style={styles.arrowIcon}
         />
         <View style={styles.locationItem}>
-          <MaterialIcons name="location-on" size={24} color={theme.colors.primary} />
+          <MaterialIcons
+            name="location-on"
+            size={24}
+            color={theme.colors.primary}
+          />
           <View style={styles.locationTextContainer}>
             <Text style={styles.labelText}>To</Text>
             <Text style={styles.locationText}>{load.destinationLocation}</Text>
@@ -387,7 +416,9 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                   }))
                 }
               >
-                <Text style={styles.unitButtonText}>{editedLoad.weightUnit}</Text>
+                <Text style={styles.unitButtonText}>
+                  {editedLoad.weightUnit}
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -415,7 +446,9 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                   }))
                 }
               >
-                <Text style={styles.unitButtonText}>{editedLoad.lengthUnit}</Text>
+                <Text style={styles.unitButtonText}>
+                  {editedLoad.lengthUnit}
+                </Text>
               </TouchableOpacity>
             </View>
 
@@ -511,8 +544,8 @@ export const LoadCard: React.FC<LoadCardProps> = ({
             </View>
 
             <View style={styles.contactContainer}>
-              <TouchableOpacity 
-                style={styles.contactItem} 
+              <TouchableOpacity
+                style={styles.contactItem}
                 onPress={(e) => {
                   e.stopPropagation();
                   handleCall();
@@ -527,8 +560,8 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                   Phone: {load.contactNumber}
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={styles.contactItem} 
+              <TouchableOpacity
+                style={styles.contactItem}
                 onPress={(e) => {
                   e.stopPropagation();
                   handleStaffCall();
@@ -585,9 +618,15 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                     <ActivityIndicator color="#FFF" size="small" />
                   ) : (
                     <>
-                      <MaterialIcons name="upload-file" size={20} color="#FFF" />
+                      <MaterialIcons
+                        name="upload-file"
+                        size={20}
+                        color="#FFF"
+                      />
                       <Text style={styles.actionText}>
-                        {load.receiptStorageId ? "Update Receipt" : "Upload Receipt"}
+                        {load.receiptStorageId
+                          ? "Update Receipt"
+                          : "Upload Receipt"}
                       </Text>
                     </>
                   )}

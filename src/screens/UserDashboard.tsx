@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Linking,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
@@ -26,6 +27,23 @@ export const UserDashboard = () => {
     api.loads.generateStandaloneUploadUrl
   );
   const saveStandaloneReceipt = useMutation(api.loads.saveStandaloneReceipt);
+
+  const handleWhatsAppSend = async () => {
+    const phoneNumber = "9369692777";
+    const whatsappUrl = `whatsapp://send?phone=91${phoneNumber}`;
+    try {
+      const canOpen = await Linking.canOpenURL(whatsappUrl);
+      if (canOpen) {
+        await Linking.openURL(whatsappUrl);
+      } else {
+        Alert.alert("Error", "WhatsApp is not installed on your device", [
+          { text: "OK" },
+        ]);
+      }
+    } catch (error) {
+      Alert.alert("Error", "Could not open WhatsApp", [{ text: "OK" }]);
+    }
+  };
 
   const handleUploadForLoad = async (loadId: Id<"loads">) => {
     try {
@@ -87,6 +105,7 @@ export const UserDashboard = () => {
       setIsUploading(false);
     }
   };
+
   const handleStandaloneUpload = async () => {
     try {
       setIsUploading(true);
@@ -187,19 +206,28 @@ export const UserDashboard = () => {
               <Text style={styles.uploadButtonText}>Upload Receipts</Text>
             </>
           )}
-          {uploadSuccess && (
-            <View style={styles.successIndicator}>
-              <MaterialIcons
-                name="check-circle"
-                size={24}
-                color={theme.colors.success}
-              />
-              <Text style={styles.successText}>
-                Receipt uploaded successfully!
-              </Text>
-            </View>
-          )}
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.whatsappButton}
+          onPress={handleWhatsAppSend}
+        >
+          <MaterialIcons name="send" size={24} color="#FFF" />
+          <Text style={styles.uploadButtonText}>Send to WhatsApp</Text>
+        </TouchableOpacity>
+
+        {uploadSuccess && (
+          <View style={styles.successIndicator}>
+            <MaterialIcons
+              name="check-circle"
+              size={24}
+              color={theme.colors.success}
+            />
+            <Text style={styles.successText}>
+              Receipt uploaded successfully!
+            </Text>
+          </View>
+        )}
       </View>
 
       <View style={styles.contentContainer}>{renderContent()}</View>
@@ -217,12 +245,21 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.border,
     backgroundColor: theme.colors.background,
+    gap: theme.spacing.sm,
   },
   uploadButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: theme.colors.success,
+    padding: theme.spacing.md,
+    borderRadius: 8,
+  },
+  whatsappButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#25D366",
     padding: theme.spacing.md,
     borderRadius: 8,
   },

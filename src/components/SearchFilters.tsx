@@ -1,7 +1,7 @@
+import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import { theme } from "../theme";
 import { Button } from "./Button";
-import React, { useState } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   View,
@@ -20,25 +20,43 @@ type SearchFiltersProps = {
     location: string;
   };
   onParamsChange: (params: any) => void;
+  resultsExist?: boolean;
 };
 
 export const SearchFilters = ({
   params,
   onParamsChange,
+  resultsExist = true,
 }: SearchFiltersProps) => {
+  const initialParams = {
+    dateFrom: dayjs().format("YYYY-MM-DD"),
+    dateTo: dayjs().format("YYYY-MM-DD"),
+    location: "",
+  };
+  const [localParams, setLocalParams] = useState(initialParams);
   const [showFromDate, setShowFromDate] = useState(false);
   const [showToDate, setShowToDate] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
 
   const handleApplyFilters = () => {
-    setIsVisible(false);
+    if (!localParams.location || localParams.dateFrom > localParams.dateTo) {
+      alert("Invalid filters! Please adjust your inputs.");
+    } else {
+      onParamsChange(localParams);
+      setIsVisible(false);
+    }
+  };
+
+  const handleOpenModal = () => {
+    setLocalParams(initialParams); // Reset fields to initial state
+    setIsVisible(true);
   };
 
   return (
     <View>
       <Button
         title="Filter"
-        onPress={() => setIsVisible(true)}
+        onPress={handleOpenModal}
         variant="tertiary"
         iconName="filter-alt"
       />
@@ -64,13 +82,13 @@ export const SearchFilters = ({
             <View style={styles.filterContainer}>
               <View style={styles.dateContainer}>
                 <Button
-                  title={`From: ${params.dateFrom}`}
+                  title={`From: ${localParams.dateFrom}`}
                   onPress={() => setShowFromDate(true)}
                   variant="tertiary"
                   iconName="calendar-today"
                 />
                 <Button
-                  title={`To: ${params.dateTo}`}
+                  title={`To: ${localParams.dateTo}`}
                   onPress={() => setShowToDate(true)}
                   variant="tertiary"
                   iconName="calendar-today"
@@ -79,14 +97,14 @@ export const SearchFilters = ({
 
               {showFromDate && Platform.OS !== "web" && (
                 <DateTimePicker
-                  value={new Date(params.dateFrom)}
+                  value={new Date(localParams.dateFrom)}
                   mode="date"
                   display="default"
                   onChange={(event, date) => {
                     setShowFromDate(false);
                     if (date && event.type !== "dismissed") {
-                      onParamsChange({
-                        ...params,
+                      setLocalParams({
+                        ...localParams,
                         dateFrom: dayjs(date).format("YYYY-MM-DD"),
                       });
                     }
@@ -96,14 +114,14 @@ export const SearchFilters = ({
 
               {showToDate && Platform.OS !== "web" && (
                 <DateTimePicker
-                  value={new Date(params.dateTo)}
+                  value={new Date(localParams.dateTo)}
                   mode="date"
                   display="default"
                   onChange={(event, date) => {
                     setShowToDate(false);
                     if (date && event.type !== "dismissed") {
-                      onParamsChange({
-                        ...params,
+                      setLocalParams({
+                        ...localParams,
                         dateTo: dayjs(date).format("YYYY-MM-DD"),
                       });
                     }
@@ -113,10 +131,10 @@ export const SearchFilters = ({
 
               <TextInput
                 style={styles.input}
-                placeholder="Search load..."
-                value={params.location}
+                placeholder="Search load or location"
+                value={localParams.location}
                 onChangeText={(text) =>
-                  onParamsChange({ ...params, location: text })
+                  setLocalParams({ ...localParams, location: text })
                 }
               />
 
@@ -130,18 +148,13 @@ export const SearchFilters = ({
           </View>
         </View>
       </Modal>
-    </View>
-  );
-};
 
-export const AddLoadButton = () => {
-  return (
-    <Button
-      title="Add Load"
-      onPress={() => console.log("Add Load pressed")}
-      variant="primary"
-      iconName="add-circle"
-    />
+      {!resultsExist && (
+        <View style={styles.noResultsContainer}>
+          <Text style={styles.noResultsText}>No results found.</Text>
+        </View>
+      )}
+    </View>
   );
 };
 
@@ -198,7 +211,13 @@ const styles = StyleSheet.create({
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
   },
-  applyButton: {
-    marginTop: theme.spacing.md,
+  noResultsContainer: {
+    padding: theme.spacing.md,
+    alignItems: "center",
+  },
+  noResultsText: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontStyle: "italic",
   },
 });

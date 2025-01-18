@@ -1,5 +1,5 @@
 {
-  "name": "OmMotors",
+  "name": "OmMotors Transport",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^14.0.4",
+    "@google-cloud/storage": "^7.15.0",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-community/datetimepicker": "^8.2.0",
     "@react-native-picker/picker": "2.9.0",

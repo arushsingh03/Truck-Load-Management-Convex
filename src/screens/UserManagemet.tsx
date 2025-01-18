@@ -12,10 +12,10 @@ import {
   Alert,
   Linking,
 } from "react-native";
+import { FlashList } from "@shopify/flash-list";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useQuery, useMutation } from "convex/react";
 import { Id } from "../../convex/_generated/dataModel";
-import { MaterialIcons } from "@expo/vector-icons";
-import { FlashList } from "@shopify/flash-list";
 import DocumentViewer from "../components/DocumentView";
 
 const UserStatistics = () => {
@@ -232,7 +232,7 @@ const UserCard = ({
             size={20}
             color={theme.colors.light}
           />
-          <Text style={styles.documentButtonText}>Review</Text>
+          <Text style={styles.documentButtonText}>View</Text>
         </TouchableOpacity>
       </View>
     </View>
