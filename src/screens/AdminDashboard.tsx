@@ -16,9 +16,9 @@ import { FlashList } from "@shopify/flash-list";
 import { LoadCard } from "../components/LoadCard";
 import { api } from "../../convex/_generated/api";
 import { MaterialIcons } from "@expo/vector-icons";
+import BadgeCounter from "../components/BadgeCounter";
 import { SearchFilters } from "../components/SearchFilters";
 import NotificationBell from "../components/NotificationBell";
-import BadgeCounter from "../components/BadgeCounter";
 
 export const AdminDashboard = ({ navigation }: any) => {
   const [searchParams, setSearchParams] = useState({
