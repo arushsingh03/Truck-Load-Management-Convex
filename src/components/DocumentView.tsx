@@ -8,10 +8,10 @@ import {
   TouchableOpacity,
   ActivityIndicator,
 } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import { theme } from "../theme";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { theme } from "../theme";
+import { MaterialIcons } from "@expo/vector-icons";
 
 interface DocumentViewerProps {
   storageId?: string;

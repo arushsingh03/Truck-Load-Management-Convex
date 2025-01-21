@@ -50,7 +50,7 @@ export const Header = ({ isAdmin, navigation }: HeaderProps) => {
     <SafeAreaView>
       <View style={styles.container}>
         <View style={styles.leftSection}>
-          <Text style={styles.title}>Om Motors</Text>
+          <Text style={styles.title}>Om Motors Transport</Text>
           {user?.userType && <Text style={styles.roleBadge}>{getRoleBadge()}</Text>}
         </View>
 

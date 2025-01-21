@@ -1,6 +1,6 @@
 import React from "react";
-import { Text, View } from "react-native";
 import { theme } from "../theme";
+import { Text, View } from "react-native";
 
 const BadgeCounter = ({ count }: { count: number }) => {
   if (!count || count === 0) return null;
