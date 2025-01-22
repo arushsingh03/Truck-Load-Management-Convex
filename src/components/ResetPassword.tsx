@@ -1,3 +1,4 @@
+import { theme } from "../theme";
 import React, { useState } from "react";
 import { useAction } from "convex/react";
 import { Button } from "../components/Button";
@@ -12,7 +13,6 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { theme } from "../theme";
 
 export const ResetPasswordScreen = ({
   navigation,

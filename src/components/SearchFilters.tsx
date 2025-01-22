@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import { theme } from "../theme";
 import { Button } from "./Button";
+import React, { useState } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   View,
