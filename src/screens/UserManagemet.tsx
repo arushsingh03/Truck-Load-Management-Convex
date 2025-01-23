@@ -43,6 +43,113 @@ const UserStatistics = () => {
   );
 };
 
+const DocumentModal = ({
+  visible,
+  storageId,
+  onClose,
+}: {
+  visible: boolean;
+  storageId: string;
+  onClose: () => void;
+}) => (
+  <Modal
+    visible={visible}
+    animationType="slide"
+    transparent={true}
+    onRequestClose={onClose}
+  >
+    <View style={styles.modalContainer}>
+      <View style={styles.modalContent}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>User Document</Text>
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <MaterialIcons name="close" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.documentContainer}>
+          <DocumentViewer storageId={storageId} />
+        </View>
+      </View>
+    </View>
+  </Modal>
+);
+
+const DetailsModal = ({
+  visible,
+  user,
+  onClose,
+  handleCall,
+}: {
+  visible: boolean;
+  user: any;
+  onClose: () => void;
+  handleCall: () => void;
+}) => (
+  <Modal
+    visible={visible}
+    animationType="slide"
+    transparent={true}
+    onRequestClose={onClose}
+  >
+    <View style={styles.modalContainer}>
+      <View style={styles.modalContent}>
+        <ScrollView>
+          <Text style={styles.modalTitle}>User Details</Text>
+          <View style={styles.modalDetailsContainer}>
+            <View style={styles.detailGroup}>
+              <Text style={styles.detailLabel}>Name</Text>
+              <Text style={styles.detailValue}>{user.name}</Text>
+            </View>
+
+            <View style={styles.detailGroup}>
+              <Text style={styles.detailLabel}>Transport Company</Text>
+              <Text style={styles.detailValue}>{user.transportName}</Text>
+            </View>
+
+            <View style={styles.detailGroup}>
+              <Text style={styles.detailLabel}>User Type</Text>
+              <Text style={styles.detailValue}>{user.userType}</Text>
+            </View>
+
+            <View style={styles.detailGroup}>
+              <Text style={styles.detailLabel}>Phone Number</Text>
+              <TouchableOpacity onPress={handleCall}>
+                <Text style={[styles.detailValue, styles.phoneNumber]}>
+                  {user.phone}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.detailGroup}>
+              <Text style={styles.detailLabel}>Registration Date</Text>
+              <Text style={styles.detailValue}>
+                {new Date(user.createdAt).toLocaleDateString()}
+              </Text>
+            </View>
+
+            <View style={styles.detailGroup}>
+              <Text style={styles.detailLabel}>Status</Text>
+              <Text
+                style={[
+                  styles.statusBadge,
+                  user.isApproved ? styles.approvedBadge : styles.pendingBadge,
+                ]}
+              >
+                {user.isApproved ? "Approved" : "Pending"}
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
+    </View>
+  </Modal>
+);
+
 const UserCard = ({
   user,
   onToggleApproval,
@@ -52,189 +159,135 @@ const UserCard = ({
 }) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const documentUrl = useQuery(api.users.getDocumentUrl, {
-    storageId: user.documentStorageId,
-  });
+  const [isExpanded, setIsExpanded] = useState(false); // Add this state
 
   const handleCall = () => {
     Linking.openURL(`tel:${user.phone}`);
   };
 
-  const DocumentModal = () => (
-    <Modal
-      visible={showDocumentModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowDocumentModal(false)}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>User Document</Text>
-
-          <View style={styles.documentContainer}>
-            <DocumentViewer storageId={user.documentStorageId} />
-          </View>
-
-          <TouchableOpacity
-            style={styles.closeButton}
-            onPress={() => setShowDocumentModal(false)}
-          >
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-  const DetailsModal = () => (
-    <Modal
-      visible={showDetailsModal}
-      animationType="slide"
-      transparent={true}
-      onRequestClose={() => setShowDetailsModal(false)}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <ScrollView>
-            <Text style={styles.modalTitle}>User Details</Text>
-            <View style={styles.modalDetailsContainer}>
-              <View style={styles.detailGroup}>
-                <Text style={styles.detailLabel}>Name</Text>
-                <Text style={styles.detailValue}>{user.name}</Text>
-              </View>
-
-              <View style={styles.detailGroup}>
-                <Text style={styles.detailLabel}>Transport Company</Text>
-                <Text style={styles.detailValue}>{user.transportName}</Text>
-              </View>
-
-              <View style={styles.detailGroup}>
-                <Text style={styles.detailLabel}>User Type</Text>
-                <Text style={styles.detailValue}>{user.userType}</Text>
-              </View>
-
-              <View style={styles.detailGroup}>
-                <Text style={styles.detailLabel}>Phone Number</Text>
-                <TouchableOpacity onPress={handleCall}>
-                  <Text style={[styles.detailValue, styles.phoneNumber]}>
-                    {user.phone}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.detailGroup}>
-                <Text style={styles.detailLabel}>Registration Date</Text>
-                <Text style={styles.detailValue}>
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </Text>
-              </View>
-
-              <View style={styles.detailGroup}>
-                <Text style={styles.detailLabel}>Status</Text>
-                <Text
-                  style={[
-                    styles.statusBadge,
-                    user.isApproved
-                      ? styles.approvedBadge
-                      : styles.pendingBadge,
-                  ]}
-                >
-                  {user.isApproved ? "Approved" : "Pending"}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={() => setShowDetailsModal(false)}
-              >
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </ScrollView>
-        </View>
-      </View>
-    </Modal>
-  );
-
   return (
     <View style={styles.card}>
-      {DetailsModal()}
-      {DocumentModal()}
-      <View style={styles.header}>
-        <View style={styles.userInfo}>
-          <MaterialIcons name="person" size={24} color={theme.colors.primary} />
-          <Text style={styles.userName}>{user.name}</Text>
+      <DocumentModal
+        visible={showDocumentModal}
+        storageId={user.documentStorageId}
+        onClose={() => setShowDocumentModal(false)}
+      />
+
+      <DetailsModal
+        visible={showDetailsModal}
+        user={user}
+        onClose={() => setShowDetailsModal(false)}
+        handleCall={handleCall}
+      />
+
+      <TouchableOpacity
+        style={styles.headerContainer}
+        onPress={() => setIsExpanded(!isExpanded)}
+      >
+        <View style={styles.header}>
+          <View style={styles.userInfo}>
+            <MaterialIcons
+              name="person"
+              size={24}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.userName}>{user.name}</Text>
+          </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={[
+                styles.statusBadge,
+                user.isApproved ? styles.approvedBadge : styles.pendingBadge,
+              ]}
+              onPress={(e) => {
+                e.stopPropagation(); // Prevent expansion when clicking status
+                onToggleApproval(user.id, !user.isApproved);
+              }}
+            >
+              <MaterialIcons
+                name={user.isApproved ? "check-circle" : "pending"}
+                size={16}
+                color={
+                  user.isApproved ? theme.colors.success : theme.colors.warning
+                }
+              />
+              <Text
+                style={[
+                  styles.statusText,
+                  user.isApproved ? styles.approvedText : styles.pendingText,
+                ]}
+              >
+                {user.isApproved ? "Approved" : "Pending"}
+              </Text>
+            </TouchableOpacity>
+            <MaterialIcons
+              name={isExpanded ? "expand-less" : "expand-more"}
+              size={24}
+              color={theme.colors.text}
+              style={styles.expandIcon}
+            />
+          </View>
         </View>
-        <TouchableOpacity
-          style={[
-            styles.statusBadge,
-            user.isApproved ? styles.approvedBadge : styles.pendingBadge,
-          ]}
-          onPress={() => onToggleApproval(user.id, !user.isApproved)}
-        >
-          <MaterialIcons
-            name={user.isApproved ? "check-circle" : "pending"}
-            size={16}
-            color={
-              user.isApproved ? theme.colors.success : theme.colors.warning
-            }
-          />
-          <Text
-            style={[
-              styles.statusText,
-              user.isApproved ? styles.approvedText : styles.pendingText,
-            ]}
-          >
-            {user.isApproved ? "Approved" : "Pending"}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      </TouchableOpacity>
 
-      <View style={styles.mainInfo}>
-        <View style={styles.infoRow}>
-          <MaterialIcons
-            name="local-shipping"
-            size={20}
-            color={theme.colors.primary}
-          />
-          <Text style={styles.infoLabel}>Transport:</Text>
-          <Text style={styles.infoValue}>{user.transportName}</Text>
-        </View>
+      {isExpanded && (
+        <>
+          <View style={styles.mainInfo}>
+            <View style={styles.infoRow}>
+              <MaterialIcons
+                name="local-shipping"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.infoLabel}>Transport:</Text>
+              <Text style={styles.infoValue}>{user.transportName}</Text>
+            </View>
 
-        <View style={styles.infoRow}>
-          <MaterialIcons name="badge" size={20} color={theme.colors.primary} />
-          <Text style={styles.infoLabel}>Type:</Text>
-          <Text style={styles.infoValue}>{user.userType}</Text>
-        </View>
-      </View>
+            <View style={styles.infoRow}>
+              <MaterialIcons
+                name="badge"
+                size={20}
+                color={theme.colors.primary}
+              />
+              <Text style={styles.infoLabel}>Type:</Text>
+              <Text style={styles.infoValue}>{user.userType}</Text>
+            </View>
+          </View>
 
-      <View style={styles.contactContainer}>
-        <TouchableOpacity style={styles.contactButton} onPress={handleCall}>
-          <MaterialIcons name="phone" size={20} color={theme.colors.light} />
-          <Text style={styles.contactText}>{user.phone}</Text>
-        </TouchableOpacity>
+          <View style={styles.contactContainer}>
+            <TouchableOpacity style={styles.contactButton} onPress={handleCall}>
+              <MaterialIcons
+                name="phone"
+                size={20}
+                color={theme.colors.light}
+              />
+              <Text style={styles.contactText}>{user.phone}</Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.detailsButton}
-          onPress={() => setShowDetailsModal(true)}
-        >
-          <MaterialIcons name="info" size={20} color={theme.colors.light} />
-          <Text style={styles.detailsButtonText}>View Details</Text>
-        </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.detailsButton}
+              onPress={() => setShowDetailsModal(true)}
+            >
+              <MaterialIcons name="info" size={20} color={theme.colors.light} />
+              <Text style={styles.detailsButtonText}>Details</Text>
+            </TouchableOpacity>
+          </View>
 
-        <TouchableOpacity
-          style={styles.documentButton}
-          onPress={() => setShowDocumentModal(true)}
-        >
-          <MaterialIcons
-            name="description"
-            size={20}
-            color={theme.colors.light}
-          />
-          <Text style={styles.documentButtonText}>View</Text>
-        </TouchableOpacity>
-      </View>
+          <View style={styles.docContainer}>
+            <TouchableOpacity
+              style={styles.documentButton}
+              onPress={() => setShowDocumentModal(true)}
+            >
+              <MaterialIcons
+                name="description"
+                size={20}
+                color={theme.colors.light}
+              />
+              <Text style={styles.documentButtonText}>View Document</Text>
+            </TouchableOpacity>
+          </View>
+        </>
+      )}
     </View>
   );
 };
@@ -270,7 +323,6 @@ export const UserManagement = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.pageTitle}>User Management</Text>
       <UserStatistics />
       <FlashList
         data={users}
@@ -289,6 +341,16 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
     padding: theme.spacing.md,
+  },
+  headerContainer: {
+    width: "100%",
+  },
+  headerRight: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  expandIcon: {
+    marginLeft: theme.spacing.sm,
   },
   statsContainer: {
     flexDirection: "row",
@@ -313,56 +375,68 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: theme.colors.primary,
   },
-  documentContainer: {
-    padding: theme.spacing.md,
-    backgroundColor: theme.colors.background,
-    borderRadius: 8,
-    marginVertical: theme.spacing.lg,
-  },
-  documentWrapper: {
-    alignItems: "center",
-  },
-  documentText: {
-    fontSize: 14,
-    color: theme.colors.text,
-    marginBottom: theme.spacing.md,
-  },
-  documentButton: {
-    backgroundColor: theme.colors.primary,
-    padding: theme.spacing.sm,
-    borderRadius: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginLeft: theme.spacing.sm,
-  },
-  documentButtonText: {
-    color: theme.colors.light,
-    marginLeft: theme.spacing.sm,
-    fontWeight: "500",
-  },
-  noDocumentText: {
-    fontSize: 16,
-    color: theme.colors.text,
-    textAlign: "center",
-    fontStyle: "italic",
-  },
   statLabel: {
     fontSize: 14,
     color: theme.colors.text,
     marginTop: 4,
   },
-  pageTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: theme.colors.primary,
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: theme.colors.light,
+    borderRadius: 12,
+    padding: theme.spacing.lg,
+    width: "90%",
+    maxWidth: 500,
+    height: "80%",
+    maxHeight: 600,
+    alignSelf: "center",
+  },
+  documentContainer: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: theme.spacing.lg,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: theme.colors.text,
     textAlign: "center",
+  },
+  modalDetailsContainer: {
+    marginBottom: theme.spacing.lg,
+  },
+  detailGroup: {
+    marginBottom: theme.spacing.md,
+  },
+  detailLabel: {
+    fontSize: 12,
+    color: theme.colors.text,
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 16,
+    color: theme.colors.text,
+    fontWeight: "500",
+  },
+  phoneNumber: {
+    color: theme.colors.primary,
   },
   card: {
     backgroundColor: theme.colors.light,
     borderRadius: 12,
-    padding: theme.spacing.lg,
+    padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -385,30 +459,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: theme.colors.text,
     marginLeft: theme.spacing.sm,
-  },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  approvedBadge: {
-    backgroundColor: `${theme.colors.success}20`,
-  },
-  pendingBadge: {
-    backgroundColor: `${theme.colors.warning}20`,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "600",
-    marginLeft: 4,
-  },
-  approvedText: {
-    color: theme.colors.success,
-  },
-  pendingText: {
-    color: theme.colors.warning,
   },
   mainInfo: {
     borderTopWidth: 1,
@@ -460,12 +510,59 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.secondary,
     padding: theme.spacing.sm,
     borderRadius: 8,
-    marginLeft: theme.spacing.sm,
+    marginHorizontal: theme.spacing.sm,
   },
   detailsButtonText: {
     color: theme.colors.light,
     marginLeft: theme.spacing.sm,
     fontWeight: "500",
+  },
+  docContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: theme.spacing.md,
+    marginRight: 8,
+    marginLeft: -8,
+  },
+  documentButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+    marginLeft: theme.spacing.sm,
+  },
+  documentButtonText: {
+    color: theme.colors.light,
+    marginLeft: theme.spacing.sm,
+    fontWeight: "500",
+  },
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.sm,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  approvedBadge: {
+    backgroundColor: `${theme.colors.success}20`,
+  },
+  pendingBadge: {
+    backgroundColor: `${theme.colors.warning}20`,
+  },
+  statusText: {
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 4,
+  },
+  approvedText: {
+    color: theme.colors.success,
+  },
+  pendingText: {
+    color: theme.colors.warning,
   },
   separator: {
     height: theme.spacing.sm,
@@ -479,46 +576,6 @@ const styles = StyleSheet.create({
     marginTop: theme.spacing.md,
     fontSize: 16,
     color: theme.colors.text,
-  },
-  modalContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    padding: theme.spacing.lg,
-  },
-  modalContent: {
-    backgroundColor: theme.colors.light,
-    borderRadius: 12,
-    padding: theme.spacing.lg,
-    width: "100%",
-    maxHeight: "80%",
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: theme.colors.text,
-    marginBottom: theme.spacing.lg,
-    textAlign: "center",
-  },
-  modalDetailsContainer: {
-    marginBottom: theme.spacing.lg,
-  },
-  detailGroup: {
-    marginBottom: theme.spacing.md,
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: theme.colors.text,
-    marginBottom: 4,
-  },
-  detailValue: {
-    fontSize: 16,
-    color: theme.colors.text,
-    fontWeight: "500",
-  },
-  phoneNumber: {
-    color: theme.colors.primary,
   },
   modalActions: {
     flexDirection: "row",

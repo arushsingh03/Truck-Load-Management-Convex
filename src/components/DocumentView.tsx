@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: theme.colors.text,
     fontSize: 16,
-    marginTop: theme.spacing.sm,
+    marginTop: theme.spacing.sm,    
   },
 });
 

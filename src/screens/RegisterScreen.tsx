@@ -15,13 +15,13 @@ import {
   Platform,
   Alert,
 } from "react-native";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import { theme } from "../theme";
+import { UserType } from "../types/types";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Picker } from "@react-native-picker/picker";
 import * as DocumentPicker from "expo-document-picker";
-import { UserType } from "../types/types";
-import { theme } from "../theme";
+import FontAwesome from "@expo/vector-icons/FontAwesome";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 
 interface DocumentInfo {
   uri: string;

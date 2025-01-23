@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   Linking,
+  Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
@@ -208,14 +209,6 @@ export const UserDashboard = () => {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.whatsappButton}
-          onPress={handleWhatsAppSend}
-        >
-          <MaterialIcons name="send" size={24} color="#FFF" />
-          <Text style={styles.uploadButtonText}>Send to WhatsApp</Text>
-        </TouchableOpacity>
-
         {uploadSuccess && (
           <View style={styles.successIndicator}>
             <MaterialIcons
@@ -231,6 +224,20 @@ export const UserDashboard = () => {
       </View>
 
       <View style={styles.contentContainer}>{renderContent()}</View>
+      <TouchableOpacity
+        style={styles.whatsappButton}
+        onPress={handleWhatsAppSend}
+      >
+        <Text style={styles.uploadButtonText}>
+          <Image
+            source={{
+              uri: "https://cdn-icons-png.flaticon.com/512/220/220236.png",
+            }}
+            style={styles.image}
+            resizeMode="contain"
+          />
+        </Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -256,21 +263,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   whatsappButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
+    position: "absolute",
+    bottom: theme.spacing.md,
+    right: theme.spacing.md,
     backgroundColor: "#25D366",
     padding: theme.spacing.md,
-    borderRadius: 8,
+    borderRadius: 100,
+    width: 60,
+    height: 60,
+    alignItems: "center",
+    justifyContent: "center",
   },
   uploadButtonDisabled: {
     opacity: 0.7,
   },
   uploadButtonText: {
     color: "#FFF",
-    fontSize: 16,
-    fontWeight: "600",
-    marginLeft: theme.spacing.sm,
+  },
+  image: {
+    width: 30,
+    height: 30,
   },
   successIndicator: {
     flexDirection: "row",
