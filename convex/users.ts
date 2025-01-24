@@ -16,7 +16,7 @@ export const insertUser = mutation({
         ),
         isAdmin: v.boolean(),
         isApproved: v.boolean(),
-        documentStorageId: v.optional(v.string()),
+        documentUrl: v.optional(v.string()),
     },
     async handler(ctx, args) {
         return await ctx.db.insert('users', {
@@ -89,7 +89,7 @@ export const updateProfile = mutation({
             userType: updatedUser.userType,
             isAdmin: updatedUser.isAdmin,
             isApproved: updatedUser.isApproved,
-            documentStorageId: updatedUser.documentStorageId,
+            documentUrl: updatedUser.documentUrl,
             createdAt: updatedUser.createdAt,
         };
     },
@@ -135,7 +135,7 @@ export const getAllUsers = query({
             userType: user.userType,
             isAdmin: user.isAdmin,
             isApproved: user.isApproved,
-            documentStorageId: user.documentStorageId,
+            documentUrl: user.documentUrl,
             createdAt: user.createdAt
         }));
     },
@@ -185,7 +185,7 @@ export const updateUserDocument = mutation({
         if (!user) throw new Error("User not found");
 
         await ctx.db.patch(args.userId, {
-            documentStorageId: args.storageId,
+            documentUrl: args.storageId,
         });
 
         return await ctx.db.get(args.userId);
@@ -212,15 +212,15 @@ export const getDocumentUrl = query({
 export const getAllPushTokens = query({
     args: {},
     handler: async (ctx) => {
-      const users = await ctx.db
-        .query("users")
-        .filter((q) => q.neq(q.field("pushToken"), null))
-        .collect();
-      return users
-        .map(user => user.pushToken)
-        .filter((token): token is string => token !== undefined);
+        const users = await ctx.db
+            .query("users")
+            .filter((q) => q.neq(q.field("pushToken"), null))
+            .collect();
+        return users
+            .map(user => user.pushToken)
+            .filter((token): token is string => token !== undefined);
     },
-  });
+});
 
 export const getUserStatistics = query({
     args: {},
@@ -245,9 +245,9 @@ export const getUserStatistics = query({
 
 export const getPendingUsersCount = query(async (ctx) => {
     const users = await ctx.db
-      .query("users")
-      .filter((q) => q.eq(q.field("isApproved"), false))
-      .collect();
-    
+        .query("users")
+        .filter((q) => q.eq(q.field("isApproved"), false))
+        .collect();
+
     return users.length;
-  });
+});

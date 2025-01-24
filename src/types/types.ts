@@ -11,7 +11,7 @@ export interface User {
     userType: 'driver' | 'motorOwner' | 'transporter' | 'admin';
     isAdmin: boolean;
     isApproved: boolean;
-    documentStorageId?: string;
+    documentUrl?: string;
     createdAt: string;
 }
 

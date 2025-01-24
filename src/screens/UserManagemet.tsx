@@ -68,7 +68,7 @@ const DocumentModal = ({
         </View>
 
         <View style={styles.documentContainer}>
-          <DocumentViewer storageId={storageId} />
+          <DocumentViewer documentUrl={storageId} />
         </View>
       </View>
     </View>
@@ -169,7 +169,7 @@ const UserCard = ({
     <View style={styles.card}>
       <DocumentModal
         visible={showDocumentModal}
-        storageId={user.documentStorageId}
+        storageId={user.documentUrl}
         onClose={() => setShowDocumentModal(false)}
       />
 

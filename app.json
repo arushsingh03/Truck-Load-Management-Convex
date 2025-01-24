@@ -18,9 +18,13 @@
         {
           "icon": "./assets/icon.png",
           "color": "#f9f8fb",
-          "sounds": [
-            "./assets/notification.wav"
-          ]
+          "sounds": ["./assets/notification.wav"]
+        }
+      ],
+      [
+        "expo-document-picker",
+        {
+          "iCloudContainerEnvironment": "Production"
         }
       ],
       "expo-secure-store"

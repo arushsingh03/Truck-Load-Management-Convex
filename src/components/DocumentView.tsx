@@ -9,19 +9,14 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { theme } from "../theme";
-import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
 import { MaterialIcons } from "@expo/vector-icons";
 
 interface DocumentViewerProps {
-  storageId?: string;
+  documentUrl?: string;
 }
 
-const DocumentViewer: React.FC<DocumentViewerProps> = ({ storageId }) => {
+const DocumentViewer: React.FC<DocumentViewerProps> = ({ documentUrl }) => {
   const [fileType, setFileType] = useState<"image" | "pdf" | null>(null);
-  const documentUrl = useQuery(api.users.getDocumentUrl, {
-    storageId,
-  });
 
   useEffect(() => {
     if (documentUrl) {
@@ -35,7 +30,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ storageId }) => {
     }
   }, [documentUrl]);
 
-  if (!storageId) {
+  if (!documentUrl) {
     return (
       <View style={styles.errorContainer}>
         <MaterialIcons
@@ -63,7 +58,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({ storageId }) => {
         <Image
           source={{ uri: documentUrl }}
           style={styles.image}
-          resizeMode="contain"
+          resizeMode="cover"
         />
       ) : fileType === "pdf" ? (
         <View style={styles.pdfContainer}>
@@ -109,7 +104,7 @@ const styles = StyleSheet.create({
   },
   image: {
     width: "100%",
-    height: 300,
+    height: "100%",
     backgroundColor: theme.colors.shadow,
   },
   pdfContainer: {
@@ -156,7 +151,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: theme.colors.text,
     fontSize: 16,
-    marginTop: theme.spacing.sm,    
+    marginTop: theme.spacing.sm,
   },
 });
 

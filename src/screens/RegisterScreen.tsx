@@ -22,6 +22,7 @@ import { Picker } from "@react-native-picker/picker";
 import * as DocumentPicker from "expo-document-picker";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { uploadToCloudinary } from "../utils/cloudianry";
 
 interface DocumentInfo {
   uri: string;
@@ -65,25 +66,42 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["image/*", "application/pdf"],
-        copyToCacheDirectory: false,
+        copyToCacheDirectory: true, // Changed to true to ensure file availability
       });
 
       if (result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        setFormData({
-          ...formData,
-          documentInfo: {
-            uri: asset.uri,
-            name: asset.name,
-            mimeType: asset.mimeType,
-            size: asset.size,
-          },
+        setIsLoading(true); // Add loading state
+
+        console.log("Selected file:", {
+          uri: asset.uri,
+          name: asset.name,
+          type: asset.mimeType,
+          size: asset.size,
         });
-        setError("");
+
+        const cloudinaryUrl = await uploadToCloudinary(asset.uri);
+
+        if (cloudinaryUrl) {
+          setFormData({
+            ...formData,
+            documentInfo: {
+              uri: cloudinaryUrl,
+              name: asset.name,
+              mimeType: asset.mimeType,
+              size: asset.size,
+            },
+          });
+          setError("");
+        } else {
+          setError("Failed to upload document. Please try again.");
+        }
       }
     } catch (err) {
-      setError("Error uploading document");
       console.error("Document pick error:", err);
+      setError("Error uploading document. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -142,7 +160,7 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
 
   const handleRegister = async () => {
     if (!validateForm()) return;
-
+  
     setIsLoading(true);
     try {
       await register({
@@ -152,9 +170,9 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
         password: formData.password,
         address: formData.address,
         userType: formData.userType as UserType,
-        documentStorageId: formData.documentInfo?.uri || undefined,
+        documentUrl: formData.documentInfo?.uri 
       });
-
+  
       Alert.alert(
         "Registration Successful",
         "Your account has been created. Please wait for admin approval.",
@@ -167,6 +185,7 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
       setIsLoading(false);
     }
   };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground

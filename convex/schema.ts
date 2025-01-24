@@ -16,7 +16,7 @@ export default defineSchema({
         ),
         isAdmin: v.boolean(),
         isApproved: v.boolean(),
-        documentStorageId: v.optional(v.string()),
+        documentUrl: v.optional(v.string()),
         createdAt: v.string(),
         pushToken: v.optional(v.string()),
     }),

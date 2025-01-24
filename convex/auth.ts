@@ -16,7 +16,7 @@ interface User {
     userType: UserType;
     isAdmin: boolean;
     isApproved: boolean;
-    documentStorageId?: string;
+    documentUrl?: string;
     createdAt: string;
 }
 
@@ -30,7 +30,7 @@ interface ResetPasswordResponse {
     userType: UserType;
     isAdmin: boolean;
     isApproved: boolean;
-    documentStorageId?: string;
+    documentUrl?: string;
     createdAt: string;
 }
 
@@ -47,7 +47,7 @@ export const register = action({
             v.literal('transporter'),
             v.literal('admin')
         ),
-        documentStorageId: v.optional(v.string()),
+        documentUrl: v.optional(v.string()), // Changed from documentUrl to documentUrl
     },
     handler: async (
         ctx,
