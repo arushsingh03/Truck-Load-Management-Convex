@@ -16,6 +16,7 @@ export interface User {
 }
 
 export type Load = {
+    receiptUrl: any;
     email: any;
     _id: Id<'loads'>;
     currentLocation: string;

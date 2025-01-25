@@ -1,10 +1,9 @@
-import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 
 const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME;
 const UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_PESETS;
+const UPLOAD_PRESET_RECEIPTS = process.env.EXPO_PUBLIC_CLOUDINARY_PESETS_RECEIPTS;
 
-// Helper function to get MIME type from file extension
 const getMimeType = (extension: string): string => {
     const mimeTypes: { [key: string]: string } = {
         'jpg': 'image/jpeg',
@@ -17,7 +16,6 @@ const getMimeType = (extension: string): string => {
     return mimeTypes[extension.toLowerCase()] || 'application/octet-stream';
 };
 
-// Validate Cloudinary configuration
 const validateConfig = () => {
     if (!CLOUDINARY_CLOUD_NAME) {
         throw new Error('Cloudinary cloud name is not configured');
@@ -31,26 +29,21 @@ const validateConfig = () => {
 
 export const uploadToCloudinary = async (uri: string): Promise<string | null> => {
     try {
-        // Validate configuration first
         validateConfig();
 
-        // Get the file info
         const fileInfo = await FileSystem.getInfoAsync(uri);
         if (!fileInfo.exists) {
             console.error('File does not exist');
             return null;
         }
 
-        // Read the file as base64
         const base64 = await FileSystem.readAsStringAsync(uri, {
             encoding: FileSystem.EncodingType.Base64,
         });
 
-        // Determine the file type
         const fileExtension = uri.split('.').pop()?.toLowerCase() || '';
         const mimeType = getMimeType(fileExtension);
 
-        // Create form data
         const formData = new FormData();
         formData.append('file', `data:${mimeType};base64,${base64}`);
         formData.append('upload_preset', UPLOAD_PRESET!);
@@ -81,6 +74,59 @@ export const uploadToCloudinary = async (uri: string): Promise<string | null> =>
 
     } catch (error) {
         console.error('Detailed upload error:', error);
+        return null;
+    }
+};
+
+export const uploadReceiptToCloudinary = async (uri: string): Promise<{ url: string; publicId: string } | null> => {
+    try {
+        validateConfig();
+
+        const fileInfo = await FileSystem.getInfoAsync(uri);
+        if (!fileInfo.exists) {
+            console.error('File does not exist');
+            return null;
+        }
+
+        const base64 = await FileSystem.readAsStringAsync(uri, {
+            encoding: FileSystem.EncodingType.Base64,
+        });
+
+        const fileExtension = uri.split('.').pop()?.toLowerCase() || '';
+        const mimeType = getMimeType(fileExtension);
+
+        const formData = new FormData();
+        formData.append('file', `data:${mimeType};base64,${base64}`);
+        formData.append('upload_preset', UPLOAD_PRESET_RECEIPTS!);
+        formData.append('OmMotors/Receipts', 'receipts'); // Specify receipts folder
+
+        console.log('Starting receipt upload to Cloudinary...');
+
+        const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
+        const response = await fetch(uploadUrl, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'multipart/form-data',
+            },
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            console.error('Cloudinary error response:', JSON.stringify(errorData, null, 2));
+            throw new Error(`Upload failed: ${response.status} - ${errorData.error?.message || response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('Receipt upload successful:', data.secure_url);
+        return {
+            url: data.secure_url,
+            publicId: data.public_id
+        };
+
+    } catch (error) {
+        console.error('Receipt upload error:', error);
         return null;
     }
 };

@@ -31,10 +31,12 @@ export default defineSchema({
         staffContactNumber: v.string(),
         createdAt: v.string(),
         receiptStorageId: v.optional(v.string()),
+        receiptUrl: v.optional(v.string()),
         isOwner: v.optional(v.boolean()),
     }),
     receipts: defineTable({
         storageId: v.string(),
+        url: v.string(),
         createdAt: v.string(),
         type: v.string(),
     }),

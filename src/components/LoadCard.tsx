@@ -21,6 +21,7 @@ import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
+import { uploadReceiptToCloudinary } from "../utils/cloudianry";
 
 if (Platform.OS === "android") {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
@@ -49,14 +50,11 @@ export const LoadCard: React.FC<LoadCardProps> = ({
   }
   const [isExpanded, setIsExpanded] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editedLoad, setEditedLoad] = useState(load);
   const [isEditing, setIsEditing] = useState(false);
 
-  const generateUploadUrl = useMutation(api.loads.generateUploadUrl);
   const uploadReceipt = useMutation(api.loads.uploadReceipt);
-  const generateDownloadUrl = useMutation(api.loads.generateDownloadUrl);
   const deleteLoad = useMutation(api.loads.deleteLoad);
   const updateLoad = useMutation(api.loads.updateLoad);
 
@@ -93,53 +91,20 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
   const handleDownloadReceipt = async () => {
     try {
-      setIsDownloading(true);
-  
-      if (!load.receiptStorageId) {
+      if (!load.receiptUrl) {
         Alert.alert("Error", "No receipt available for download");
         return;
       }
-  
-      let storageId = load.receiptStorageId;
-  
-      if (storageId.startsWith('kg')) {
-        storageId = storageId;
-      } else {
-        if (storageId.includes('?')) {
-          storageId = storageId.split('?')[0];
-        }
-        
-        if (storageId.includes("token=")) {
-          storageId = storageId.split("token=")[1].split("&")[0];
-        }
-        
-        storageId = storageId.split("/").pop() || storageId;
-      }
-  
-      if (!storageId) {
-        throw new Error("Invalid storage ID format");
-      }
-  
-      const downloadUrl = await generateDownloadUrl({
-        storageId: storageId,
-      });
-  
-      if (typeof downloadUrl === "string" && downloadUrl) {
-        await Linking.openURL(downloadUrl);
-      } else {
-        throw new Error(`Invalid download URL format: ${typeof downloadUrl}`);
-      }
+
+      await Linking.openURL(load.receiptUrl);
     } catch (error) {
       console.error("Download error:", error);
-      
       Alert.alert(
         "Error",
         error instanceof Error
           ? `Download failed: ${error.message}`
           : "Failed to download receipt"
       );
-    } finally {
-      setIsDownloading(false);
     }
   };
 
@@ -156,37 +121,16 @@ export const LoadCard: React.FC<LoadCardProps> = ({
           throw new Error("No file URI available");
         }
 
-        const uploadResult = await generateUploadUrl();
-        if (!uploadResult?.uploadUrl || !uploadResult?.storageId) {
-          throw new Error("Failed to get valid upload URL");
+        const uploadResult = await uploadReceiptToCloudinary(file.uri);
+
+        if (!uploadResult) {
+          throw new Error("Failed to upload receipt");
         }
-
-        const formData = new FormData();
-        formData.append("file", {
-          uri: file.uri,
-          type: file.mimeType || "application/octet-stream",
-          name: file.name,
-        } as any);
-
-        const uploadResponse = await fetch(uploadResult.uploadUrl, {
-          method: "POST",
-          body: formData,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error(`Upload failed: ${uploadResponse.status}`);
-        }
-
-        const cleanStorageId =
-          uploadResult.storageId.split("/").pop()?.split("?")[0] ||
-          uploadResult.storageId;
 
         await uploadReceipt({
           loadId: load._id,
-          storageId: cleanStorageId,
+          cloudinaryUrl: uploadResult.url,
+          cloudinaryPublicId: uploadResult.publicId,
         });
 
         Alert.alert("Success", "Receipt uploaded successfully");
@@ -203,6 +147,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       setIsUploading(false);
     }
   };
+
   const handleDelete = useCallback(() => {
     Alert.alert(
       "Confirm Delete",

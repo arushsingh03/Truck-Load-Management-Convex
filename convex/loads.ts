@@ -151,33 +151,11 @@ export const getNewReceipts = query({
   },
 });
 
-export const generateUploadUrl = mutation({
-  async handler(ctx) {
-    try {
-      const uploadUrl = await ctx.storage.generateUploadUrl();
-
-      const url = new URL(uploadUrl);
-      const storageId = url.searchParams.get('token');
-
-      if (!storageId) {
-        throw new Error('No storage ID found in upload URL');
-      }
-
-      console.log('Generated upload URL:', uploadUrl);
-      console.log('Extracted storage ID:', storageId);
-
-      return { uploadUrl, storageId };
-    } catch (error) {
-      console.error('Upload URL generation error:', error);
-      throw new Error('Failed to generate upload URL: ' + (error instanceof Error ? error.message : 'Unknown error'));
-    }
-  },
-});
-
 export const uploadReceipt = mutation({
   args: {
     loadId: v.id('loads'),
-    storageId: v.string(),
+    cloudinaryUrl: v.string(),
+    cloudinaryPublicId: v.string(),
   },
   async handler(ctx, args) {
     const load = await ctx.db.get(args.loadId);
@@ -185,54 +163,36 @@ export const uploadReceipt = mutation({
       throw new Error('Load not found');
     }
 
-    try {
-      const cleanedStorageId = cleanStorageId(args.storageId);
+    await ctx.db.patch(args.loadId, {
+      receiptStorageId: args.cloudinaryPublicId,
+      receiptUrl: args.cloudinaryUrl
+    });
 
-      await ctx.db.patch(args.loadId, {
-        receiptStorageId: cleanedStorageId
-      });
-
-      return await ctx.db.get(args.loadId);
-    } catch (error) {
-      console.error('Storage ID cleaning error:', error);
-      throw new Error('Failed to process storage ID: ' +
-        (error instanceof Error ? error.message : 'Unknown error'));
-    }
+    return await ctx.db.get(args.loadId);
   },
 });
 
-
-export const generateDownloadUrl = mutation({
+export const saveStandaloneReceipt = mutation({
   args: {
-    storageId: v.string(),
+    cloudinaryUrl: v.string(),
+    cloudinaryPublicId: v.string(),
   },
   async handler(ctx, args) {
-    try {
-      let storageId = args.storageId;
+    const receiptData = await ctx.db.insert('receipts', {
+      storageId: args.cloudinaryPublicId,
+      url: args.cloudinaryUrl,
+      createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+      type: 'standalone'
+    });
 
-      if (!storageId.startsWith('kg')) {
-        if (storageId.includes('/')) {
-          storageId = storageId.split('/').pop() || storageId;
-        }
-        if (storageId.includes('?')) {
-          storageId = storageId.split('?')[0];
-        }
-      }
-
-      const downloadUrl = await ctx.storage.getUrl(storageId);
-
-      if (!downloadUrl) {
-        throw new Error('Failed to generate download URL');
-      }
-
-      return downloadUrl;
-    } catch (error) {
-      console.error('Download URL generation error:', error);
-      throw new Error('Failed to generate download URL: ' +
-        (error instanceof Error ? error.message : 'Unknown error'));
-    }
+    return {
+      success: true,
+      receiptData
+    };
   },
 });
+
+
 
 
 export const deleteLoad = mutation({
@@ -257,25 +217,6 @@ export const deleteLoad = mutation({
     }
 
     await ctx.db.delete(args.loadId);
-  },
-});
-
-export const saveStandaloneReceipt = mutation({
-  args: {
-    storageId: v.string(),
-  },
-  async handler(ctx, args) {
-    const receiptData = await ctx.db.insert('receipts', {
-      storageId: args.storageId,
-      createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-      type: 'standalone'
-    });
-
-    return {
-      success: true,
-      storageId: args.storageId,
-      receiptData
-    };
   },
 });
 
