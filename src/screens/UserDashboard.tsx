@@ -16,6 +16,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import * as DocumentPicker from "expo-document-picker";
 import { FlashList } from "@shopify/flash-list";
 import { LoadCard } from "../components/LoadCard";
+import { uploadReceiptToCloudinary } from "../utils/cloudianry";
 import { Id } from "../../convex/_generated/dataModel";
 
 export const UserDashboard = () => {
@@ -24,9 +25,6 @@ export const UserDashboard = () => {
 
   const loads = useQuery(api.loads.getTodayLoads);
   const uploadReceipt = useMutation(api.loads.uploadReceipt);
-  const generateStandaloneUploadUrl = useMutation(
-    api.loads.generateStandaloneUploadUrl
-  );
   const saveStandaloneReceipt = useMutation(api.loads.saveStandaloneReceipt);
 
   const handleWhatsAppSend = async () => {
@@ -57,35 +55,16 @@ export const UserDashboard = () => {
         const file = result.assets[0];
         if (!file.uri) throw new Error("No file URI available");
 
-        const uploadResult = await generateStandaloneUploadUrl();
-        const { uploadUrl, storageId } = uploadResult;
+        const uploadResult = await uploadReceiptToCloudinary(file.uri);
 
-        if (!uploadUrl) {
-          throw new Error("Upload URL not provided");
-        }
-
-        const formData = new FormData();
-        formData.append("file", {
-          uri: file.uri,
-          type: file.mimeType,
-          name: file.name,
-        } as any);
-
-        const uploadResponse = await fetch(uploadUrl, {
-          method: "POST",
-          body: formData,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        if (!uploadResult) {
+          throw new Error("Failed to upload receipt to Cloudinary");
         }
 
         await uploadReceipt({
           loadId,
-          storageId,
+          cloudinaryUrl: uploadResult.url,
+          cloudinaryPublicId: uploadResult.publicId,
         });
 
         Alert.alert("Success", "Receipt uploaded successfully!", [
@@ -118,30 +97,15 @@ export const UserDashboard = () => {
         const file = result.assets[0];
         if (!file.uri) throw new Error("No file URI available");
 
-        const uploadResult = await generateStandaloneUploadUrl();
-        const { uploadUrl, storageId } = uploadResult;
+        const uploadResult = await uploadReceiptToCloudinary(file.uri);
 
-        const formData = new FormData();
-        formData.append("file", {
-          uri: file.uri,
-          type: file.mimeType,
-          name: file.name,
-        } as any);
-
-        const uploadResponse = await fetch(uploadUrl, {
-          method: "POST",
-          body: formData,
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error(`Upload failed: ${uploadResponse.statusText}`);
+        if (!uploadResult) {
+          throw new Error("Failed to upload receipt to Cloudinary");
         }
 
         await saveStandaloneReceipt({
-          storageId,
+          cloudinaryUrl: uploadResult.url,
+          cloudinaryPublicId: uploadResult.publicId,
         });
 
         Alert.alert("Success", "Standalone receipt uploaded successfully!", [
@@ -204,7 +168,7 @@ export const UserDashboard = () => {
           ) : (
             <>
               <MaterialIcons name="upload-file" size={24} color="#FFF" />
-              <Text style={styles.uploadButtonText}>Upload Receipts</Text>
+              <Text style={styles.uploadButtonText}>{"  "}Upload Receipts</Text>
             </>
           )}
         </TouchableOpacity>
@@ -279,6 +243,8 @@ const styles = StyleSheet.create({
   },
   uploadButtonText: {
     color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
   },
   image: {
     width: 30,

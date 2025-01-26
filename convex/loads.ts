@@ -192,9 +192,6 @@ export const saveStandaloneReceipt = mutation({
   },
 });
 
-
-
-
 export const deleteLoad = mutation({
   args: {
     loadId: v.id('loads'),
