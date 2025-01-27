@@ -31,7 +31,7 @@ const NotificationBell = ({ onPress }: { onPress: () => void }) => {
       accessibilityLabel={`Notifications: ${totalCount} new receipts`}
       accessibilityRole="button"
     >
-      <MaterialIcons name="notifications" size={24} color="#333" />
+      <MaterialIcons name="attach-file" size={24} color="#000" />
       {totalCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{totalCount}</Text>

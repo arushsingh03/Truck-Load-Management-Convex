@@ -225,7 +225,7 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
                 }}
               >
                 <Picker.Item label="Select User Type :" value="" />
-                <Picker.Item label="Admin" value="admin" />
+                {/* <Picker.Item label="Admin" value="admin" /> */}
                 <Picker.Item label="Driver" value="driver" />
                 <Picker.Item label="Motor Owner" value="motorOwner" />
                 <Picker.Item label="Transporter" value="transporter" />

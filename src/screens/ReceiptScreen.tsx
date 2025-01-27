@@ -40,6 +40,7 @@ export const ReceiptsScreen = () => {
         <Text style={styles.receiptDate}>
           Upload Date: {dayjs(item.createdAt).format("MMMM D, YYYY")}
         </Text>
+        <Text style={styles.receiptType}>Type: {item.type}</Text>
       </View>
       <View style={styles.actionButtons}>
         <TouchableOpacity
@@ -54,10 +55,9 @@ export const ReceiptsScreen = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Uploaded Receipts</Text>
       {receipts && receipts.length > 0 ? (
         <FlatList
-        //@ts-ignore
+          //@ts-ignore
           data={receipts}
           renderItem={renderItem}
           keyExtractor={(item) => item.storageId}
@@ -75,12 +75,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.background,
     padding: theme.spacing.md,
-  },
-  header: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: theme.spacing.lg,
-    textAlign: "center",
   },
   receiptItem: {
     flexDirection: "row",

@@ -11,7 +11,6 @@ import {
   TouchableOpacity,
   Linking,
 } from "react-native";
-import { useMutation } from "convex/react";
 import { FlashList } from "@shopify/flash-list";
 import { LoadCard } from "../components/LoadCard";
 import { api } from "../../convex/_generated/api";
@@ -26,20 +25,18 @@ export const AdminDashboard = ({ navigation }: any) => {
     dateTo: dayjs().format("YYYY-MM-DD"),
     location: "",
   });
-  const generateDownloadUrl = useMutation(api.loads.generateDownloadUrl);
   const pendingUsersCount = useQuery(api.users.getPendingUsersCount);
 
-  const handleDownload = async (storageId: string) => {
+  const handleDownload = async (url: string) => {
     try {
-      const downloadUrl = await generateDownloadUrl({ storageId });
-      if (downloadUrl) {
-        Linking.openURL(downloadUrl);
+      if (url) {
+        await Linking.openURL(url);
       } else {
-        throw new Error("Download URL is null");
+        throw new Error("Receipt URL is missing");
       }
     } catch (error) {
       console.error("Download error:", error);
-      Alert.alert("Error", "Failed to download receipt");
+      Alert.alert("Error", "Failed to open receipt");
     }
   };
 
@@ -54,12 +51,10 @@ export const AdminDashboard = ({ navigation }: any) => {
         Alert.alert("Delete", "Delete functionality not implemented yet")
       }
       renderReceiptButton={() =>
-        item.receiptStorageId && (
+        item.receiptUrl && (
           <TouchableOpacity
             style={styles.downloadButton}
-            onPress={() =>
-              item.receiptStorageId && handleDownload(item.receiptStorageId)
-            }
+            onPress={() => handleDownload(item.receiptUrl!)}
           >
             <MaterialIcons name="file-download" size={24} color="#FFF" />
           </TouchableOpacity>
@@ -93,7 +88,7 @@ export const AdminDashboard = ({ navigation }: any) => {
 
       <View style={styles.listContainer}>
         <FlashList
-          // @ts-ignore
+          //@ts-ignore
           data={loads?.map((load) => ({ ...load, id: load._id }))}
           renderItem={renderItem}
           estimatedItemSize={200}
@@ -103,6 +98,7 @@ export const AdminDashboard = ({ navigation }: any) => {
     </View>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
