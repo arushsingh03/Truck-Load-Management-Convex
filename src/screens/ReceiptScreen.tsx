@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   StyleSheet,
@@ -7,23 +7,46 @@ import {
   FlatList,
   Alert,
   Linking,
+  StatusBar,
+  RefreshControl,
 } from "react-native";
 import dayjs from "dayjs";
 import { theme } from "../theme";
+import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useQuery } from "convex/react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Receipt = {
   storageId: string;
   createdAt: string;
   url: string;
-  uploadedBy: string;
-  type: string;
+  type: "standalone" | "load";
 };
 
 export const ReceiptsScreen = () => {
-  const receipts = useQuery(api.loads.getReceiptStorageIds);
+  const insets = useSafeAreaInsets();
+  const [refreshing, setRefreshing] = useState(false);
+  const allReceipts = useQuery(api.loads.getReceiptStorageIds);
+
+  // Get last 24 hours timestamp
+  const lastCheckedAt = dayjs()
+    .subtract(24, "hours")
+    .format("YYYY-MM-DD HH:mm:ss");
+
+  // Filter standalone receipts
+  const standaloneReceipts =
+    allReceipts?.filter((receipt) => receipt.type === "standalone") || [];
+
+  // Filter new receipts (last 24 hours)
+  const newReceipts = standaloneReceipts.filter((receipt) =>
+    dayjs(receipt.createdAt).isAfter(dayjs(lastCheckedAt))
+  );
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  }, []);
 
   const handleDownload = async (url: string) => {
     try {
@@ -34,93 +57,201 @@ export const ReceiptsScreen = () => {
     }
   };
 
-  const renderItem = ({ item }: { item: Receipt }) => (
-    <View style={styles.receiptItem}>
-      <View style={styles.receiptInfo}>
-        <Text style={styles.receiptDate}>
-          Upload Date: {dayjs(item.createdAt).format("MMMM D, YYYY")}
-        </Text>
-        <Text style={styles.receiptType}>Type: {item.type}</Text>
-      </View>
-      <View style={styles.actionButtons}>
-        <TouchableOpacity
-          style={[styles.iconButton, styles.downloadButton]}
-          onPress={() => handleDownload(item.url)}
-        >
-          <MaterialIcons name="file-download" size={24} color="#FFF" />
-        </TouchableOpacity>
-      </View>
+  const renderItem = ({ item }: { item: Receipt }) => {
+    const isNew = dayjs(item.createdAt).isAfter(dayjs(lastCheckedAt));
+
+    return (
+      <TouchableOpacity
+        style={[styles.receiptItem, isNew && styles.newReceiptItem]}
+        onPress={() => handleDownload(item.url)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.iconContainer}>
+          <MaterialIcons
+            name="receipt"
+            size={32}
+            color={theme.colors.primary}
+          />
+        </View>
+        <View style={styles.receiptInfo}>
+          <View style={styles.receiptHeader}>
+            <Text style={styles.receiptDate}>
+              {dayjs(item.createdAt).format("MMM D, YYYY")}
+            </Text>
+            {isNew && (
+              <View style={styles.newBadge}>
+                <Text style={styles.newBadgeText}>New</Text>
+              </View>
+            )}
+          </View>
+          <Text style={styles.receiptId}>ID: {item.storageId.slice(0, 8)}</Text>
+        </View>
+        <View style={styles.downloadIconContainer}>
+          <MaterialIcons
+            name="file-download"
+            size={24}
+            color={theme.colors.primary}
+          />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  const ListHeader = () => (
+    <View style={styles.headerContainer}>
+      <Text style={styles.headerTitle}>Standalone Receipts</Text>
+      <Text style={styles.headerSubtitle}>
+        {newReceipts.length > 0 && (
+          <Text style={styles.highlightText}>{newReceipts.length} new </Text>
+        )}
+        {standaloneReceipts.length}{" "}
+        {standaloneReceipts.length === 1 ? "receipt" : "receipts"} available
+      </Text>
     </View>
   );
 
   return (
-    <View style={styles.container}>
-      {receipts && receipts.length > 0 ? (
+    <View style={[styles.container, { paddingTop: insets.top }]}>
+      <StatusBar barStyle="dark-content" />
+      {standaloneReceipts.length > 0 ? (
         <FlatList
           //@ts-ignore
-          data={receipts}
+          data={standaloneReceipts}
           renderItem={renderItem}
           keyExtractor={(item) => item.storageId}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
+          contentContainerStyle={styles.listContainer}
+          ListHeaderComponent={ListHeader}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         />
       ) : (
-        <Text style={styles.emptyText}>No receipts found</Text>
+        <EmptyState />
       )}
     </View>
   );
 };
 
+const EmptyState = () => (
+  <View style={styles.emptyStateContainer}>
+    <MaterialIcons name="receipt-long" size={64} color={theme.colors.muted} />
+    <Text style={styles.emptyStateTitle}>No Receipts Yet</Text>
+    <Text style={styles.emptyStateSubtitle}>
+      Standalone receipts will appear here when uploaded
+    </Text>
+  </View>
+);
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: "#F5F7FA",
+  },
+  headerContainer: {
+    padding: theme.spacing.md,
+    backgroundColor: "#F5F7FA",
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#1A1D1E",
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "#71767A",
+    marginBottom: theme.spacing.md,
+  },
+  listContainer: {
     padding: theme.spacing.md,
   },
   receiptItem: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     padding: theme.spacing.md,
-    backgroundColor: "#fff",
-    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
     elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: `${theme.colors.primary}15`,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: theme.spacing.md,
   },
   receiptInfo: {
     flex: 1,
   },
   receiptDate: {
     fontSize: 16,
-    color: "#333",
+    fontWeight: "600",
+    color: "#1A1D1E",
+    marginBottom: 4,
   },
-  uploadedBy: {
+  receiptId: {
     fontSize: 14,
-    color: "#666",
-    marginTop: 4,
+    color: "#71767A",
   },
-  receiptType: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 2,
-  },
-  actionButtons: {
-    flexDirection: "row",
-    gap: theme.spacing.sm,
-  },
-  iconButton: {
-    padding: theme.spacing.sm,
-    borderRadius: 8,
-    marginLeft: theme.spacing.sm,
-  },
-  downloadButton: {
-    backgroundColor: theme.colors.primary,
+  downloadIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: `${theme.colors.primary}15`,
+    justifyContent: "center",
+    alignItems: "center",
   },
   separator: {
     height: theme.spacing.md,
   },
-  emptyText: {
-    textAlign: "center",
+  emptyStateContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: theme.spacing.xl,
+  },
+  emptyStateTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1A1D1E",
+    marginTop: theme.spacing.lg,
+    marginBottom: theme.spacing.sm,
+  },
+  emptyStateSubtitle: {
     fontSize: 16,
-    color: "#666",
-    marginTop: theme.spacing.xl,
+    color: "#71767A",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  newReceiptItem: {
+    borderColor: theme.colors.primary,
+    borderWidth: 1,
+  },
+  receiptHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  newBadge: {
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  newBadgeText: {
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  highlightText: {
+    color: theme.colors.primary,
+    fontWeight: "bold",
   },
 });

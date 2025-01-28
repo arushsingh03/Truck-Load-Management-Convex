@@ -10,31 +10,29 @@ const NotificationBell = ({ onPress }: { onPress: () => void }) => {
     .subtract(24, "hours")
     .format("YYYY-MM-DD HH:mm:ss");
 
-  const newLoadReceipts = useQuery(api.loads.getNewReceipts, { lastCheckedAt });
   const allStorageIds = useQuery(api.loads.getReceiptStorageIds);
 
-  const standaloneReceipts =
+  const newStandaloneReceipts =
     allStorageIds?.filter((receipt) => {
-      const receiptDate = dayjs(receipt.createdAt);
-      const lastCheck = dayjs(lastCheckedAt);
-      return receiptDate.isAfter(lastCheck);
+      return (
+        receipt.type === "standalone" &&
+        dayjs(receipt.createdAt).isAfter(dayjs(lastCheckedAt))
+      );
     }) ?? [];
 
-  const loadReceiptsCount = newLoadReceipts?.length || 0;
-  const standaloneReceiptsCount = standaloneReceipts.length;
-  const totalCount = loadReceiptsCount + standaloneReceiptsCount;
+  const newReceiptsCount = newStandaloneReceipts.length;
 
   return (
     <TouchableOpacity
       onPress={onPress}
       style={styles.container}
-      accessibilityLabel={`Notifications: ${totalCount} new receipts`}
+      accessibilityLabel={`Notifications: ${newReceiptsCount} new receipts`}
       accessibilityRole="button"
     >
       <MaterialIcons name="attach-file" size={24} color="#000" />
-      {totalCount > 0 && (
+      {newReceiptsCount > 0 && (
         <View style={styles.badge}>
-          <Text style={styles.badgeText}>{totalCount}</Text>
+          <Text style={styles.badgeText}>{newReceiptsCount}</Text>
         </View>
       )}
     </TouchableOpacity>

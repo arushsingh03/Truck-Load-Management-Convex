@@ -92,59 +92,125 @@ const DetailsModal = ({
     transparent={true}
     onRequestClose={onClose}
   >
-    <View style={styles.modalContainer}>
+    <View style={styles.modalOverlay}>
       <View style={styles.modalContent}>
-        <ScrollView>
-          <Text style={styles.modalTitle}>User Details</Text>
-          <View style={styles.modalDetailsContainer}>
-            <View style={styles.detailGroup}>
-              <Text style={styles.detailLabel}>Name</Text>
-              <Text style={styles.detailValue}>{user.name}</Text>
+        <View style={styles.modalHeaderEnhanced}>
+          <MaterialIcons name="person" size={40} color={theme.colors.primary} />
+          <Text style={styles.modalTitleEnhanced}>{user.name}</Text>
+          <TouchableOpacity 
+            style={[
+              styles.statusBadgeEnhanced,
+              user.isApproved ? styles.approvedBadge : styles.pendingBadge,
+            ]}
+          >
+            <MaterialIcons
+              name={user.isApproved ? "check-circle" : "pending"}
+              size={16}
+              color={user.isApproved ? theme.colors.success : theme.colors.warning}
+            />
+            <Text
+              style={[
+                styles.statusText,
+                user.isApproved ? styles.approvedText : styles.pendingText,
+              ]}
+            >
+              {user.isApproved ? "Approved" : "Pending"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.detailsScrollView}>
+          <View style={styles.detailsContainerEnhanced}>
+            <View style={styles.detailCardEnhanced}>
+              <MaterialIcons
+                name="business"
+                size={24}
+                color={theme.colors.primary}
+                style={styles.detailIcon}
+              />
+              <View style={styles.detailTextContainer}>
+                <Text style={styles.detailLabelEnhanced}>Transport Company</Text>
+                <Text style={styles.detailValueEnhanced}>{user.transportName}</Text>
+              </View>
             </View>
 
-            <View style={styles.detailGroup}>
-              <Text style={styles.detailLabel}>Transport Company</Text>
-              <Text style={styles.detailValue}>{user.transportName}</Text>
+            <View style={styles.detailCardEnhanced}>
+              <MaterialIcons
+                name="badge"
+                size={24}
+                color={theme.colors.primary}
+                style={styles.detailIcon}
+              />
+              <View style={styles.detailTextContainer}>
+                <Text style={styles.detailLabelEnhanced}>User Type</Text>
+                <Text style={styles.detailValueEnhanced}>{user.userType}</Text>
+              </View>
             </View>
 
-            <View style={styles.detailGroup}>
-              <Text style={styles.detailLabel}>User Type</Text>
-              <Text style={styles.detailValue}>{user.userType}</Text>
+            <View style={styles.detailCardEnhanced}>
+              <MaterialIcons
+                name="phone"
+                size={24}
+                color={theme.colors.primary}
+                style={styles.detailIcon}
+              />
+              <View style={styles.detailTextContainer}>
+                <Text style={styles.detailLabelEnhanced}>Phone Number</Text>
+                <TouchableOpacity onPress={handleCall}>
+                  <Text style={styles.phoneNumberEnhanced}>{user.phone}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={styles.detailGroup}>
-              <Text style={styles.detailLabel}>Phone Number</Text>
-              <TouchableOpacity onPress={handleCall}>
-                <Text style={[styles.detailValue, styles.phoneNumber]}>
-                  {user.phone}
+            <View style={styles.detailCardEnhanced}>
+              <MaterialIcons
+                name="event"
+                size={24}
+                color={theme.colors.primary}
+                style={styles.detailIcon}
+              />
+              <View style={styles.detailTextContainer}>
+                <Text style={styles.detailLabelEnhanced}>Registration Date</Text>
+                <Text style={styles.detailValueEnhanced}>
+                  {new Date(user.createdAt).toLocaleDateString()}
                 </Text>
-              </TouchableOpacity>
+              </View>
             </View>
 
-            <View style={styles.detailGroup}>
-              <Text style={styles.detailLabel}>Registration Date</Text>
-              <Text style={styles.detailValue}>
-                {new Date(user.createdAt).toLocaleDateString()}
-              </Text>
-            </View>
-
-            <View style={styles.detailGroup}>
-              <Text style={styles.detailLabel}>Status</Text>
-              <Text
-                style={[
-                  styles.statusBadge,
-                  user.isApproved ? styles.approvedBadge : styles.pendingBadge,
-                ]}
-              >
-                {user.isApproved ? "Approved" : "Pending"}
-              </Text>
+            <View style={styles.detailCardEnhanced}>
+              <MaterialIcons
+                name="location-on"
+                size={24}
+                color={theme.colors.primary}
+                style={styles.detailIcon}
+              />
+              <View style={styles.detailTextContainer}>
+                <Text style={styles.detailLabelEnhanced}>Address</Text>
+                <Text style={styles.detailValueEnhanced}>
+                  {user.address || "Not specified"}
+                </Text>
+              </View>
             </View>
           </View>
-
-          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
-            <Text style={styles.closeButtonText}>Close</Text>
-          </TouchableOpacity>
         </ScrollView>
+
+        <View style={styles.modalActionsEnhanced}>
+          <TouchableOpacity 
+            style={styles.actionButtonEnhanced} 
+            onPress={handleCall}
+          >
+            <MaterialIcons name="phone" size={24} color={theme.colors.light} />
+            <Text style={styles.actionButtonText}>Call</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.actionButtonEnhanced, styles.closeButtonEnhanced]} 
+            onPress={onClose}
+          >
+            <MaterialIcons name="close" size={24} color={theme.colors.light} />
+            <Text style={styles.actionButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   </Modal>
@@ -200,7 +266,7 @@ const UserCard = ({
                 user.isApproved ? styles.approvedBadge : styles.pendingBadge,
               ]}
               onPress={(e) => {
-                e.stopPropagation(); // Prevent expansion when clicking status
+                e.stopPropagation();
                 onToggleApproval(user.id, !user.isApproved);
               }}
             >
@@ -386,16 +452,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  modalContent: {
-    backgroundColor: theme.colors.light,
-    borderRadius: 12,
-    padding: theme.spacing.lg,
-    width: "90%",
-    maxWidth: 500,
-    height: "80%",
-    maxHeight: 600,
-    alignSelf: "center",
-  },
   documentContainer: {
     flex: 1,
     backgroundColor: theme.colors.background,
@@ -408,30 +464,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: theme.spacing.lg,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: theme.colors.text,
-    textAlign: "center",
-  },
   modalDetailsContainer: {
     marginBottom: theme.spacing.lg,
-  },
-  detailGroup: {
-    marginBottom: theme.spacing.md,
-  },
-  detailLabel: {
-    fontSize: 12,
-    color: theme.colors.text,
-    marginBottom: 4,
-  },
-  detailValue: {
-    fontSize: 16,
-    color: theme.colors.text,
-    fontWeight: "500",
-  },
-  phoneNumber: {
-    color: theme.colors.primary,
   },
   card: {
     backgroundColor: theme.colors.light,
@@ -540,19 +574,6 @@ const styles = StyleSheet.create({
     marginLeft: theme.spacing.sm,
     fontWeight: "500",
   },
-  statusBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  approvedBadge: {
-    backgroundColor: `${theme.colors.success}20`,
-  },
-  pendingBadge: {
-    backgroundColor: `${theme.colors.warning}20`,
-  },
   statusText: {
     fontSize: 12,
     fontWeight: "600",
@@ -577,6 +598,70 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: theme.colors.text,
   },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: theme.spacing.md,
+  },
+  modalContent: {
+    backgroundColor: theme.colors.light,
+    borderRadius: 12,
+    padding: theme.spacing.lg,
+    width: "90%",
+    maxWidth: 500,
+    height: "80%",
+    maxHeight: 600,
+    alignSelf: "center",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: theme.colors.text,
+    textAlign: "center",
+    marginBottom: theme.spacing.lg,
+  },
+  detailsContainer: {
+    paddingBottom: theme.spacing.md,
+  },
+  detailGroup: {
+    marginBottom: theme.spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    paddingBottom: theme.spacing.sm,
+  },
+  detailLabel: {
+    fontSize: 14,
+    color: theme.colors.text,
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 16,
+    color: theme.colors.text,
+    fontWeight: "600",
+  },
+  phoneNumber: {
+    color: theme.colors.primary,
+  },
+  statusBadge: {
+    fontSize: 14,
+    fontWeight: "600",
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    textAlign: "center",
+    flexDirection: "row",
+  },
+  approvedBadge: {
+    backgroundColor: `${theme.colors.success}20`,
+    color: theme.colors.success,
+  },
+  pendingBadge: {
+    backgroundColor: `${theme.colors.warning}20`,
+    color: theme.colors.warning,
+  },
   modalActions: {
     flexDirection: "row",
     justifyContent: "center",
@@ -593,5 +678,97 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",
+  },
+  modalHeaderEnhanced: {
+    alignItems: 'center',
+    paddingVertical: theme.spacing.lg,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.border,
+    marginBottom: theme.spacing.md,
+  },
+  modalTitleEnhanced: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: theme.colors.text,
+    marginTop: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
+  },
+  detailsScrollView: {
+    flex: 1,
+  },
+  detailsContainerEnhanced: {
+    padding: theme.spacing.md,
+  },
+  detailCardEnhanced: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.md,
+    borderRadius: 12,
+    marginBottom: theme.spacing.md,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  detailIcon: {
+    marginRight: theme.spacing.md,
+  },
+  detailTextContainer: {
+    flex: 1,
+  },
+  detailLabelEnhanced: {
+    fontSize: 12,
+    color: theme.colors.secondary,
+    marginBottom: 4,
+  },
+  detailValueEnhanced: {
+    fontSize: 16,
+    color: theme.colors.text,
+    fontWeight: "600",
+  },
+  phoneNumberEnhanced: {
+    fontSize: 16,
+    color: theme.colors.primary,
+    fontWeight: "600",
+    textDecorationLine: 'underline',
+  },
+  statusBadgeEnhanced: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: theme.spacing.md,
+    paddingVertical: theme.spacing.xs,
+    borderRadius: 20,
+    marginTop: theme.spacing.xs,
+  },
+  modalActionsEnhanced: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    padding: theme.spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+  },
+  actionButtonEnhanced: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.colors.primary,
+    padding: theme.spacing.md,
+    borderRadius: 12,
+    marginHorizontal: theme.spacing.xs,
+  },
+  closeButtonEnhanced: {
+    backgroundColor: theme.colors.error,
+  },
+  actionButtonText: {
+    color: theme.colors.light,
+    fontSize: 16,
+    fontWeight: "600",
+    marginLeft: theme.spacing.sm,
   },
 });
