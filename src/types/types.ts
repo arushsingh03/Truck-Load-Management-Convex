@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { Id } from "../../convex/_generated/dataModel";
 
 export type UserType = 'driver' | 'motorOwner' | 'transporter' | 'admin';
@@ -16,6 +17,12 @@ export interface User {
 }
 
 export type Load = {
+    date(date: any): unknown;
+    address: any;
+    location: ReactNode;
+    description: ReactNode;
+    status: any;
+    id: string;
     receiptUrl: any;
     email: any;
     _id: Id<'loads'>;

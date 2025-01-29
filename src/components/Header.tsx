@@ -1,7 +1,7 @@
-import React, { useState } from "react";
 import { theme } from "../theme";
-import { MaterialIcons } from "@expo/vector-icons";
+import React, { useState } from "react";
 import { useAuthStore } from "../store/authStore";
+import { MaterialIcons } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
   View,

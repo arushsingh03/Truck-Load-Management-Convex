@@ -596,7 +596,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: theme.spacing.md,
+    marginHorizontal: theme.spacing.xl,
     marginVertical: theme.spacing.sm,
   },
   card: {
@@ -636,7 +636,7 @@ const styles = StyleSheet.create({
   dateTimeItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: theme.spacing.md,
+    marginRight: theme.spacing.sm,
   },
   dateTimeText: {
     fontSize: 14,
@@ -650,6 +650,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: theme.spacing.sm,
     paddingVertical: 4,
     borderRadius: 12,
+    marginRight: 50,
   },
   noReceiptBadge: {
     backgroundColor: theme.colors.error + "20",

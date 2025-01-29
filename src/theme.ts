@@ -8,7 +8,7 @@ export const theme = {
     border: "#CCCCCC",
     tertiary: "#e5e7eb",
     success: "#28A745",
-    warning: "#FFC107",
+    warning: "#FFE3E1",
     danger: "#DC3545",
     info: "#17A2B8",
     muted: "#6C757D",

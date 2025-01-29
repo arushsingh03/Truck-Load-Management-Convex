@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { theme } from "../theme";
 import { Button } from "./Button";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   View,
@@ -11,7 +11,9 @@ import {
   Modal,
   TouchableOpacity,
   Text,
+  Animated,
 } from "react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 
 type SearchFiltersProps = {
   params: {
@@ -20,46 +22,133 @@ type SearchFiltersProps = {
     location: string;
   };
   onParamsChange: (params: any) => void;
-  resultsExist?: boolean;
+  resultsExist: boolean;
 };
 
 export const SearchFilters = ({
   params,
   onParamsChange,
-  resultsExist = true,
+  resultsExist,
 }: SearchFiltersProps) => {
   const initialParams = {
     dateFrom: dayjs().format("YYYY-MM-DD"),
     dateTo: dayjs().format("YYYY-MM-DD"),
     location: "",
   };
-  const [localParams, setLocalParams] = useState(initialParams);
+
+  const [localParams, setLocalParams] = useState(params || initialParams);
   const [showFromDate, setShowFromDate] = useState(false);
   const [showToDate, setShowToDate] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [warningMessage, setWarningMessage] = useState("");
+  const [showWarning, setShowWarning] = useState(false);
 
-  const handleApplyFilters = () => {
-    if (!localParams.location || localParams.dateFrom > localParams.dateTo) {
-      alert("Invalid filters! Please adjust your inputs.");
+  useEffect(() => {
+    setLocalParams(params);
+  }, [params]);
+
+  useEffect(() => {
+    if (!resultsExist) {
+      setShowWarning(true);
+      if (localParams.location) {
+        setWarningMessage(
+          `No loads found for location "${localParams.location}"`
+        );
+      } else if (
+        localParams.dateFrom !== initialParams.dateFrom ||
+        localParams.dateTo !== initialParams.dateTo
+      ) {
+        setWarningMessage(
+          `No loads found between ${dayjs(localParams.dateFrom).format("MMM D, YYYY")} and ${dayjs(localParams.dateTo).format("MMM D, YYYY")}`
+        );
+      }
     } else {
-      onParamsChange(localParams);
-      setIsVisible(false);
+      setShowWarning(false);
+      setWarningMessage("");
+    }
+  }, [resultsExist, localParams, initialParams]);
+
+  const handleReset = () => {
+    const resetParams = {
+      ...initialParams,
+      dateFrom: dayjs().format("YYYY-MM-DD"),
+      dateTo: dayjs().format("YYYY-MM-DD"),
+    };
+    setLocalParams(resetParams);
+    onParamsChange(resetParams);
+    setShowWarning(false);
+    setWarningMessage("");
+  };
+
+  const handleDateChange = (
+    field: "dateFrom" | "dateTo",
+    date: Date | undefined
+  ) => {
+    if (date) {
+      const formattedDate = dayjs(date).format("YYYY-MM-DD");
+      const newParams = {
+        ...localParams,
+        [field]: formattedDate,
+      };
+
+      if (
+        field === "dateTo" &&
+        dayjs(newParams.dateFrom).isAfter(formattedDate)
+      ) {
+        alert(
+          "Invalid date range! 'From' date must be before or equal to 'To' date."
+        );
+        return;
+      }
+
+      setLocalParams(newParams);
+      onParamsChange(newParams);
     }
   };
 
-  const handleOpenModal = () => {
-    setLocalParams(initialParams); // Reset fields to initial state
-    setIsVisible(true);
+  const handleLocationChange = (text: string) => {
+    const newParams = {
+      ...localParams,
+      location: text,
+    };
+    setLocalParams(newParams);
+    onParamsChange(newParams);
   };
 
   return (
-    <View>
-      <Button
-        title="Filter"
-        onPress={handleOpenModal}
-        variant="tertiary"
-        iconName="filter-alt"
-      />
+    <View style={styles.container}>
+      <View style={styles.filterButtonContainer}>
+        <Button
+          title="Filter"
+          onPress={() => setIsVisible(true)}
+          variant="tertiary"
+          iconName="filter-alt"
+        />
+        <TouchableOpacity onPress={handleReset} style={styles.resetButton}>
+          <Text style={styles.resetIcon}>
+            <MaterialIcons name="refresh" size={24} color="black" />
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.container}>
+        {showWarning && warningMessage && (
+          <Animated.View style={styles.warningContainer}>
+            <Text style={styles.warningIcon}>
+              <MaterialIcons name="warning-amber" size={54} color="red" />
+            </Text>
+            <View style={styles.warningContent}>
+              <Text style={styles.warningText}>{warningMessage}</Text>
+            </View>
+            <TouchableOpacity
+              style={styles.clearFilterButton}
+              onPress={handleReset}
+            >
+              <Text style={styles.clearFilterText}>Clear Filters</Text>
+            </TouchableOpacity>
+          </Animated.View>
+        )}
+      </View>
 
       <Modal
         visible={isVisible}
@@ -103,10 +192,7 @@ export const SearchFilters = ({
                   onChange={(event, date) => {
                     setShowFromDate(false);
                     if (date && event.type !== "dismissed") {
-                      setLocalParams({
-                        ...localParams,
-                        dateFrom: dayjs(date).format("YYYY-MM-DD"),
-                      });
+                      handleDateChange("dateFrom", date);
                     }
                   }}
                 />
@@ -120,10 +206,7 @@ export const SearchFilters = ({
                   onChange={(event, date) => {
                     setShowToDate(false);
                     if (date && event.type !== "dismissed") {
-                      setLocalParams({
-                        ...localParams,
-                        dateTo: dayjs(date).format("YYYY-MM-DD"),
-                      });
+                      handleDateChange("dateTo", date);
                     }
                   }}
                 />
@@ -133,32 +216,98 @@ export const SearchFilters = ({
                 style={styles.input}
                 placeholder="Search load or location"
                 value={localParams.location}
-                onChangeText={(text) =>
-                  setLocalParams({ ...localParams, location: text })
-                }
+                onChangeText={handleLocationChange}
               />
 
               <Button
-                title="Apply Filters"
-                onPress={handleApplyFilters}
-                iconName="check"
-                variant="primary"
+                title="Close"
+                onPress={() => setIsVisible(false)}
+                iconName="close"
+                variant="secondary"
               />
             </View>
           </View>
         </View>
       </Modal>
-
-      {!resultsExist && (
-        <View style={styles.noResultsContainer}>
-          <Text style={styles.noResultsText}>No results found.</Text>
-        </View>
-      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  container: {
+    width: "100%",
+  },
+  filterButtonContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: theme.spacing.sm,
+  },
+  resetButton: {
+    marginRight: 22,
+    backgroundColor: theme.colors.background,
+    borderRadius: 20,
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  resetIcon: {
+    fontSize: 30,
+    color: theme.colors.text,
+  },
+  warningContainer: {
+    backgroundColor: theme.colors.warning,
+    borderColor: theme.colors.primary,
+    borderWidth: 2,
+    borderRadius: 8,
+    marginTop: theme.spacing.md,
+    shadowColor: theme.colors.shadow,
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.2,
+    shadowRadius: 1.41,
+    elevation: 2,
+    width: "85%",
+    alignSelf: "center",
+  },
+  warningContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: theme.spacing.md,
+  },
+  warningIcon: {
+    fontSize: 20,
+    marginRight: theme.spacing.sm,
+    color: theme.colors.text,
+    textAlign: "center",
+    marginTop: 10,
+  },
+  warningText: {
+    color: theme.colors.text,
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "600",
+    textAlign: "center",
+  },
+  clearFilterButton: {
+    borderWidth: 2,
+    borderColor: theme.colors.primary,
+    padding: theme.spacing.sm,
+    alignItems: "center",
+    backgroundColor: theme.colors.background,
+    marginVertical: 10,
+    marginHorizontal: 40,
+    borderRadius: 10,
+  },
+  clearFilterText: {
+    color: theme.colors.text,
+    fontSize: 16,
+    fontWeight: "600",
+  },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0, 0, 0, 0.5)",
@@ -210,14 +359,5 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: theme.spacing.md,
     marginBottom: theme.spacing.md,
-  },
-  noResultsContainer: {
-    padding: theme.spacing.md,
-    alignItems: "center",
-  },
-  noResultsText: {
-    color: theme.colors.text,
-    fontSize: 16,
-    fontStyle: "italic",
   },
 });

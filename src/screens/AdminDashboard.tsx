@@ -84,12 +84,16 @@ export const AdminDashboard = ({ navigation }: any) => {
         <NotificationBell onPress={() => navigation.navigate("Receipts")} />
       </View>
 
-      <SearchFilters params={searchParams} onParamsChange={setSearchParams} />
+      <SearchFilters
+        params={searchParams}
+        onParamsChange={setSearchParams}
+        resultsExist={Boolean(loads?.length)}
+      />
 
       <View style={styles.listContainer}>
         <FlashList
           //@ts-ignore
-          data={loads?.map((load) => ({ ...load, id: load._id }))}
+          data={loads?.map((load) => ({ ...load, id: load._id })) ?? []}
           renderItem={renderItem}
           estimatedItemSize={200}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -98,7 +102,6 @@ export const AdminDashboard = ({ navigation }: any) => {
     </View>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -108,7 +111,7 @@ const styles = StyleSheet.create({
   },
   headerButtons: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     alignItems: "center",
     marginTop: 10,
   },
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.primary,
     borderRadius: 12,
     paddingVertical: theme.spacing.sm,
-    paddingHorizontal: theme.spacing.lg,
+    paddingHorizontal: theme.spacing.md,
     alignItems: "center",
     justifyContent: "center",
     elevation: 2,
