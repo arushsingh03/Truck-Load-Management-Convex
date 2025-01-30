@@ -16,8 +16,12 @@ import {
   Alert,
 } from "react-native";
 import { theme } from "../theme";
+import * as Device from "expo-device";
+import Constants from "expo-constants";
 import { UserType } from "../types/types";
+import { useMutation } from "convex/react";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import * as Notifications from "expo-notifications";
 import { Picker } from "@react-native-picker/picker";
 import * as DocumentPicker from "expo-document-picker";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -66,12 +70,12 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ["image/*", "application/pdf"],
-        copyToCacheDirectory: true, // Changed to true to ensure file availability
+        copyToCacheDirectory: true,
       });
 
       if (result.assets && result.assets.length > 0) {
         const asset = result.assets[0];
-        setIsLoading(true); // Add loading state
+        setIsLoading(true);
 
         console.log("Selected file:", {
           uri: asset.uri,
@@ -158,21 +162,71 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
     return true;
   };
 
+  const registerForPushNotificationsAsync = async () => {
+    let token;
+
+    if (Platform.OS === "android") {
+      await Notifications.setNotificationChannelAsync("default", {
+        name: "default",
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: "#FF231F7C",
+      });
+    }
+
+    if (Device.isDevice) {
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== "granted") {
+        Alert.alert("Failed to get push token for push notification!");
+        return;
+      }
+
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      if (!projectId) {
+        throw new Error("Project ID is not configured");
+      }
+
+      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+    } else {
+      Alert.alert("Must use physical device for Push Notifications");
+    }
+
+    return token;
+  };
+
+  const updatePushToken = useMutation(api.users.updatePushToken);
+
   const handleRegister = async () => {
     if (!validateForm()) return;
-  
+
     setIsLoading(true);
     try {
-      await register({
+      const userId = await register({
         name: formData.name,
         phone: formData.phone,
         transportName: formData.transportName,
         password: formData.password,
         address: formData.address,
         userType: formData.userType as UserType,
-        documentUrl: formData.documentInfo?.uri 
+        documentUrl: formData.documentInfo?.uri,
       });
-  
+
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        await updatePushToken({
+          userId,
+          pushToken,
+        });
+      }
+
       Alert.alert(
         "Registration Successful",
         "Your account has been created. Please wait for admin approval.",
@@ -185,7 +239,6 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
       setIsLoading(false);
     }
   };
-
   return (
     <SafeAreaView style={styles.safeArea}>
       <ImageBackground
@@ -225,7 +278,7 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
                 }}
               >
                 <Picker.Item label="Select User Type :" value="" />
-                {/* <Picker.Item label="Admin" value="admin" /> */}
+                <Picker.Item label="Admin" value="admin" />
                 <Picker.Item label="Driver" value="driver" />
                 <Picker.Item label="Motor Owner" value="motorOwner" />
                 <Picker.Item label="Transporter" value="transporter" />

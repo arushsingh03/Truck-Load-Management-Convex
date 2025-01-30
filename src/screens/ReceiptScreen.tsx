@@ -29,16 +29,13 @@ export const ReceiptsScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const allReceipts = useQuery(api.loads.getReceiptStorageIds);
 
-  // Get last 24 hours timestamp
   const lastCheckedAt = dayjs()
     .subtract(24, "hours")
     .format("YYYY-MM-DD HH:mm:ss");
 
-  // Filter standalone receipts
   const standaloneReceipts =
     allReceipts?.filter((receipt) => receipt.type === "standalone") || [];
 
-  // Filter new receipts (last 24 hours)
   const newReceipts = standaloneReceipts.filter((receipt) =>
     dayjs(receipt.createdAt).isAfter(dayjs(lastCheckedAt))
   );

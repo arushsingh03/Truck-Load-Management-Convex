@@ -98,7 +98,7 @@ export const uploadReceiptToCloudinary = async (uri: string): Promise<{ url: str
         const formData = new FormData();
         formData.append('file', `data:${mimeType};base64,${base64}`);
         formData.append('upload_preset', UPLOAD_PRESET_RECEIPTS!);
-        formData.append('OmMotors/Receipts', 'receipts'); // Specify receipts folder
+        formData.append('OmMotors/Receipts', 'receipts'); 
 
         console.log('Starting receipt upload to Cloudinary...');
 

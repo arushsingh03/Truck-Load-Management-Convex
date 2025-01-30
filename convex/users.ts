@@ -39,6 +39,23 @@ export const getUser = query({
     },
 });
 
+export const updatePushToken = mutation({
+    args: {
+      userId: v.id("users"),
+      pushToken: v.string(),
+    },
+    async handler(ctx, args) {
+      const user = await ctx.db.get(args.userId);
+      if (!user) throw new Error("User not found");
+  
+      await ctx.db.patch(args.userId, {
+        pushToken: args.pushToken
+      });
+  
+      return await ctx.db.get(args.userId);
+    },
+  });
+
 export const updateProfile = mutation({
     args: {
         id: v.string(),

@@ -47,7 +47,7 @@ export const register = action({
             v.literal('transporter'),
             v.literal('admin')
         ),
-        documentUrl: v.optional(v.string()), // Changed from documentUrl to documentUrl
+        documentUrl: v.optional(v.string()), 
     },
     handler: async (
         ctx,
