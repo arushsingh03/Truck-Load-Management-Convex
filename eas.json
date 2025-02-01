@@ -3,19 +3,35 @@
     "version": ">= 14.2.0",
     "appVersionSource": "remote"
   },
+  "submit": {
+    "production": {
+      "android": {
+        "serviceAccountKeyPath": "./pc-api-8624788093735183473-424-56bb2e2c9d39.json",
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
+  },
   "build": {
     "development": {
       "developmentClient": true,
       "distribution": "internal",
+      "android": {
+        "gradleCommand": ":app:assembleDebug",
+        "buildType": "apk",
+        "withoutCredentials": true
+      },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud",
-        "EAS_PROJECT_ID": "cee0bee2-f9a6-4452-a0b1-22fb4d43332d"
+        "EAS_PROJECT_ID": "cee0bee2-f9a6-4452-a0b1-22fb4d43332d",
+        "GOOGLE_SERVICES_JSON": "@env:GOOGLE_SERVICES_JSON"
       }
     },
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
       },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud",
@@ -23,8 +39,11 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "image": "ubuntu-22.04-jdk-11-ndk-r21e",
+        "gradleCommand": ":app:bundleRelease"
       },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud",
