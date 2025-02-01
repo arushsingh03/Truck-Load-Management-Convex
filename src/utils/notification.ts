@@ -14,37 +14,49 @@ Notifications.setNotificationHandler({
 export const registerForPushNotificationsAsync = async () => {
   let token;
 
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name: "default",
-      importance: Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#FF231F7C",
-    });
+  if (Platform.OS === 'android') {
+    try {
+      await Notifications.setNotificationChannelAsync('default', {
+        name: 'default',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    } catch (error) {
+      console.log("Error setting up notification channel:", error);
+    }
   }
 
   if (Device.isDevice) {
-    const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
+    try {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
 
-    if (existingStatus !== "granted") {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
+
+      if (finalStatus !== 'granted') {
+        return;
+      }
+
+      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+      if (!projectId) {
+        console.log("Project ID not found");
+        return;
+      }
+
+      token = (await Notifications.getExpoPushTokenAsync({
+        projectId: projectId,
+        devicePushToken: {
+          type: "fcm",
+          data: ""
+        }
+      })).data;
+    } catch (error) {
+      console.log("Error getting push token:", error);
     }
-
-    if (finalStatus !== "granted") {
-      console.log("Failed to get push token for push notification!");
-      return;
-    }
-
-    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-    if (!projectId) {
-      throw new Error("Project ID is not configured");
-    }
-
-    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-  } else {
-    console.log("Must use physical device for Push Notifications");
   }
 
   return token;
