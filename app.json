@@ -18,7 +18,11 @@
         {
           "icon": "./assets/icon.png",
           "color": "#f9f8fb",
-          "sounds": ["./assets/notification.wav"]
+          "sounds": ["./assets/notification.wav"],
+          "mode": "production",
+          "androidMode": "default",
+          "androidCollapsedTitle": "Om Motors Transport",
+          "iosDisplayInForeground": true
         }
       ],
       [
@@ -34,6 +38,7 @@
       "bundleIdentifier": "com.arushsingh03.ommotors"
     },
     "android": {
+      "googleServicesFile": "./android/app/google-services.json",
       "permissions": [
         "CAMERA",
         "LOCATION",
@@ -49,9 +54,21 @@
         "READ_MEDIA_IMAGES",
         "READ_MEDIA_VIDEO",
         "READ_MEDIA_AUDIO",
-        "MANAGE_DOCUMENTS"
+        "MANAGE_DOCUMENTS",
+        "POST_NOTIFICATIONS",
+        "RECEIVE_BOOT_COMPLETED",
+        "SCHEDULE_EXACT_ALARM",
+        "USE_EXACT_ALARM",
+        "VIBRATE"
       ],
-       "googleServicesFile": "./android/app/google-services.json",
+      "notification": {
+        "icon": "./assets/icon.png",
+        "color": "#f9f8fb",
+        "iosDisplayInForeground": true,
+        "androidMode": "default",
+        "androidCollapsedTitle": "Om Motors Transport"
+      },
+
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f9f8fb"
