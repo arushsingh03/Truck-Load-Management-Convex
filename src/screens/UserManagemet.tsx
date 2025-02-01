@@ -225,7 +225,7 @@ const UserCard = ({
 }) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showDocumentModal, setShowDocumentModal] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false); // Add this state
+  const [isExpanded, setIsExpanded] = useState(false); 
 
   const handleCall = () => {
     Linking.openURL(`tel:${user.phone}`);

@@ -3,7 +3,6 @@ import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-// Set notification handler once
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
