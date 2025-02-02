@@ -51,6 +51,7 @@
         "READ_MEDIA_AUDIO",
         "MANAGE_DOCUMENTS"
       ],
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f9f8fb"

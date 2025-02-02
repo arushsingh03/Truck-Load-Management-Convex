@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "318509678453",
+    "project_id": "om-motors-transport-13a82",
+    "storage_bucket": "om-motors-transport-13a82.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:318509678453:android:537887858fde68ab8c9d3c",
+        "android_client_info": {
+          "package_name": "com.arushsingh03.ommotors"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB4yoCuREGfP5oEWRKULcu9Avuslut2APA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
