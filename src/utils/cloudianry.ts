@@ -24,6 +24,9 @@ const validateConfig = () => {
     if (!UPLOAD_PRESET) {
         throw new Error('Cloudinary upload preset is not configured');
     }
+    if (!UPLOAD_PRESET_RECEIPTS) {
+        throw new Error('Cloudinary receipts upload preset is not configured');
+    }
 
     console.log('Build Environment:', __DEV__ ? 'Development' : 'Production');
     console.log('Platform:', Platform.OS);
