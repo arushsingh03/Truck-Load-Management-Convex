@@ -8,7 +8,9 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud",
+        "EXPO_PUBLIC_CLOUDINARY_PESETS": "om-motors-transport",
+        "EXPO_PUBLIC_CLOUDINARY_PESETS_RECEIPTS": "om-motors-receipts"
       }
     },
     "preview": {
@@ -17,7 +19,9 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud",
+        "EXPO_PUBLIC_CLOUDINARY_PESETS": "om-motors-transport",
+        "EXPO_PUBLIC_CLOUDINARY_PESETS_RECEIPTS": "om-motors-receipts"
       }
     },
     "production": {
@@ -25,7 +29,9 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud"
+        "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud",
+        "EXPO_PUBLIC_CLOUDINARY_PESETS": "om-motors-transport",
+        "EXPO_PUBLIC_CLOUDINARY_PESETS_RECEIPTS": "om-motors-receipts"
       }
     }
   }
