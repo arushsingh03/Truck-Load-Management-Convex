@@ -26,6 +26,12 @@
         }
       ],
       [
+        "expo-file-system",
+        {
+          "filePermission": "read-write"
+        }
+      ],
+      [
         "expo-document-picker",
         {
           "iCloudContainerEnvironment": "Production"
@@ -61,14 +67,7 @@
         "USE_EXACT_ALARM",
         "VIBRATE"
       ],
-      "notification": {
-        "icon": "./assets/icon.png",
-        "color": "#f9f8fb",
-        "iosDisplayInForeground": true,
-        "androidMode": "default",
-        "androidCollapsedTitle": "Om Motors Transport"
-      },
-
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#f9f8fb"

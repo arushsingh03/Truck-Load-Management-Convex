@@ -30,10 +30,10 @@ export const EditProfileScreen = ({ navigation }: any) => {
 
   const handleSubmit = async () => {
     try {
-      if (user?.id) {
+      if (user?._id) {
         const updatedUser = await updateProfile({
           ...formData,
-          id: user.id,
+          id: user._id,
           transportName: "",
           userType: "driver",
         });

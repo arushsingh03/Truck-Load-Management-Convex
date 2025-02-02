@@ -23,8 +23,8 @@
       },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud",
-        "EAS_PROJECT_ID": "cee0bee2-f9a6-4452-a0b1-22fb4d43332d",
-        "GOOGLE_SERVICES_JSON": "@env:GOOGLE_SERVICES_JSON"
+        "EXPO_PUBLIC_CLOUDINARY_PESETS": "om-motors-transport",
+        "EXPO_PUBLIC_CLOUDINARY_PESETS_RECEIPTS": "om-motors-receipts"
       }
     },
     "preview": {
@@ -35,7 +35,8 @@
       },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud",
-        "EAS_PROJECT_ID": "cee0bee2-f9a6-4452-a0b1-22fb4d43332d"
+        "EXPO_PUBLIC_CLOUDINARY_PESETS": "om-motors-transport",
+        "EXPO_PUBLIC_CLOUDINARY_PESETS_RECEIPTS": "om-motors-receipts"
       }
     },
     "production": {
@@ -47,7 +48,8 @@
       },
       "env": {
         "EXPO_PUBLIC_CONVEX_URL": "https://pleasant-civet-804.convex.cloud",
-        "EAS_PROJECT_ID": "cee0bee2-f9a6-4452-a0b1-22fb4d43332d"
+        "EXPO_PUBLIC_CLOUDINARY_PESETS": "om-motors-transport",
+        "EXPO_PUBLIC_CLOUDINARY_PESETS_RECEIPTS": "om-motors-receipts"
       }
     }
   }

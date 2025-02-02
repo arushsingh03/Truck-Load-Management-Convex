@@ -23,7 +23,7 @@
     "buffer": "^6.0.3",
     "convex": "^1.17.4",
     "dayjs": "^1.11.13",
-    "eas-cli": "^14.3.0",
+    "eas-cli": "^14.7.1",
     "expo": "~52.0.25",
     "expo-device": "^7.0.2",
     "expo-document-picker": "~13.0.2",

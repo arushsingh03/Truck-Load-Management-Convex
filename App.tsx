@@ -5,22 +5,111 @@ import * as SplashScreen from "expo-splash-screen";
 import * as Notifications from "expo-notifications";
 import { useAuthStore } from "./src/store/authStore";
 import { AppNavigator } from "./src/navigation/AppNavigator";
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator, Alert } from "react-native";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
-import { registerForPushNotificationsAsync } from "./src/utils/notification";
 
 SplashScreen.preventAutoHideAsync();
 
+Notifications.setNotificationHandler({
+  handleNotification: async () => {
+    try {
+      return {
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+      };
+    } catch (error) {
+      console.error("Error handling notification:", error);
+      return {
+        shouldShowAlert: false,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      };
+    }
+  },
+});
+
 const initializeConvexClient = () => {
-  const convexUrl = Constants.expoConfig?.extra?.convex?.apiUrl;
-  if (!convexUrl) {
-    throw new Error(
-      "Convex URL not configured. Please check your app.json configuration."
-    );
+  try {
+    const convexUrl = Constants.expoConfig?.extra?.convex?.apiUrl;
+    if (!convexUrl) {
+      throw new Error(
+        "Convex URL not configured. Please check your app.json configuration."
+      );
+    }
+    return new ConvexReactClient(convexUrl);
+  } catch (error) {
+    console.error("Error initializing Convex client:", error);
+    throw error;
   }
-  return new ConvexReactClient(convexUrl);
+};
+
+const registerForPushNotificationsAsync = async () => {
+  let token;
+
+  try {
+    if (Platform.OS === "android") {
+      try {
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "default",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#FF231F7C",
+          sound: "notification.wav", 
+        });
+      } catch (error) {
+        console.error("Error creating notification channel:", error);
+      }
+    }
+
+    if (!Constants.isDevice) {
+      Alert.alert(
+        "Physical Device Required",
+        "Push notifications require a physical device to work."
+      );
+      return undefined;
+    }
+
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        "Push notifications permission is required to receive updates."
+      );
+      return undefined;
+    }
+
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) {
+      throw new Error("Project ID is not configured in app.json");
+    }
+
+    token = (
+      await Notifications.getExpoPushTokenAsync({
+        projectId,
+        applicationId: Constants.expoConfig?.android?.package,
+      })
+    ).data;
+
+    return token;
+  } catch (error) {
+    console.error("Error registering for push notifications:", error);
+    Alert.alert(
+      "Notification Setup Failed",
+      "Failed to setup push notifications. Some features may be limited."
+    );
+    return undefined;
+  }
 };
 
 const LoadingScreen = () => (

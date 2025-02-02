@@ -111,38 +111,56 @@ export const LoadCard: React.FC<LoadCardProps> = ({
   const handleUploadReceipt = async () => {
     try {
       setIsUploading(true);
+      console.log("[LoadCard] Starting document picker");
+
       const result = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "image/*"],
+        copyToCacheDirectory: true, 
       });
 
-      if (result.assets && result.assets.length > 0) {
-        const file = result.assets[0];
-        if (!file.uri) {
-          throw new Error("No file URI available");
-        }
+      console.log("[LoadCard] Document picker result:", result);
 
-        const uploadResult = await uploadReceiptToCloudinary(file.uri);
-
-        if (!uploadResult) {
-          throw new Error("Failed to upload receipt");
-        }
-
-        await uploadReceipt({
-          loadId: load._id,
-          cloudinaryUrl: uploadResult.url,
-          cloudinaryPublicId: uploadResult.publicId,
-        });
-
-        Alert.alert("Success", "Receipt uploaded successfully");
+      if (!result.assets || result.assets.length === 0) {
+        throw new Error("No file selected");
       }
+
+      const file = result.assets[0];
+      if (!file.uri) {
+        throw new Error("No file URI available");
+      }
+
+      console.log("[LoadCard] Selected file:", {
+        uri: file.uri,
+        type: file.mimeType,
+        name: file.name,
+        size: file.size,
+      });
+
+      const uploadResult = await uploadReceiptToCloudinary(file.uri);
+
+      if (!uploadResult) {
+        throw new Error("Upload failed - no result returned");
+      }
+
+      console.log("[LoadCard] Upload successful, saving to database");
+
+      await uploadReceipt({
+        loadId: load._id,
+        cloudinaryUrl: uploadResult.url,
+        cloudinaryPublicId: uploadResult.publicId,
+      });
+
+      Alert.alert("Success", "Receipt uploaded successfully");
     } catch (error) {
-      console.error("Upload error:", error);
-      Alert.alert(
-        "Upload Failed",
-        error instanceof Error
-          ? error.message
-          : "Failed to upload receipt. Please try again."
-      );
+      console.error("[LoadCard] Upload error:", error);
+      let errorMessage = "Failed to upload receipt. Please try again.";
+
+      if (error instanceof Error) {
+        errorMessage = `Upload failed: ${error.message}`;
+        console.error("[LoadCard] Error stack:", error.stack);
+      }
+
+      Alert.alert("Upload Failed", errorMessage);
     } finally {
       setIsUploading(false);
     }
