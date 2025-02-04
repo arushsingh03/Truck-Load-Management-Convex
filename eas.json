@@ -1,6 +1,6 @@
 {
   "cli": {
-    "version": ">= 14.2.0",
+    "version": ">= 14.7.1",
     "appVersionSource": "remote"
   },
   "submit": {
@@ -43,7 +43,7 @@
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle",
-        "image": "ubuntu-22.04-jdk-11-ndk-r21e",
+        "image": "ubuntu-22.04-jdk-17-ndk-r21e",
         "gradleCommand": ":app:bundleRelease"
       },
       "env": {
