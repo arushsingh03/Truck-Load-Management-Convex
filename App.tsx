@@ -57,7 +57,7 @@ const registerForPushNotificationsAsync = async () => {
           importance: Notifications.AndroidImportance.MAX,
           vibrationPattern: [0, 250, 250, 250],
           lightColor: "#FF231F7C",
-          sound: "notification.wav", 
+          sound: "notification.wav",
         });
       } catch (error) {
         console.error("Error creating notification channel:", error);
@@ -65,10 +65,7 @@ const registerForPushNotificationsAsync = async () => {
     }
 
     if (!Constants.isDevice) {
-      Alert.alert(
-        "Physical Device Required",
-        "Push notifications require a physical device to work."
-      );
+      console.log("Push notifications require physical device");
       return undefined;
     }
 
@@ -82,10 +79,7 @@ const registerForPushNotificationsAsync = async () => {
     }
 
     if (finalStatus !== "granted") {
-      Alert.alert(
-        "Permission Required",
-        "Push notifications permission is required to receive updates."
-      );
+      console.log("Push notification permission not granted");
       return undefined;
     }
 
@@ -104,10 +98,6 @@ const registerForPushNotificationsAsync = async () => {
     return token;
   } catch (error) {
     console.error("Error registering for push notifications:", error);
-    Alert.alert(
-      "Notification Setup Failed",
-      "Failed to setup push notifications. Some features may be limited."
-    );
     return undefined;
   }
 };

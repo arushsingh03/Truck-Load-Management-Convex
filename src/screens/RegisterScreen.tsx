@@ -174,31 +174,29 @@ export const RegisterScreen: React.FC<NavigationProps> = ({ navigation }) => {
       });
     }
 
-    if (Device.isDevice) {
-      const { status: existingStatus } =
-        await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-
-      if (existingStatus !== "granted") {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-
-      if (finalStatus !== "granted") {
-        Alert.alert("Failed to get push token for push notification!");
-        return;
-      }
-
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId;
-      if (!projectId) {
-        throw new Error("Project ID is not configured");
-      }
-
-      token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
-    } else {
-      Alert.alert("Must use physical device for Push Notifications");
+    if (!Device.isDevice) {
+      return;
     }
 
+    const { status: existingStatus } =
+      await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+
+    if (existingStatus !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+
+    if (finalStatus !== "granted") {
+      return;
+    }
+
+    const projectId = Constants.expoConfig?.extra?.eas?.projectId;
+    if (!projectId) {
+      throw new Error("Project ID is not configured");
+    }
+
+    token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     return token;
   };
 

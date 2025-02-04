@@ -29,7 +29,7 @@ export const UserDashboard = () => {
 
   const handleWhatsAppSend = async () => {
     const phoneNumber = "9369692777";
-    const whatsappUrl = `whatsapp://send?phone=91${phoneNumber}`;
+    const whatsappUrl = `https://wa.me/91${phoneNumber}`;
     try {
       const canOpen = await Linking.canOpenURL(whatsappUrl);
       if (canOpen) {
