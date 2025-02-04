@@ -28,24 +28,25 @@ const validateConfig = () => {
         throw new Error('Cloudinary receipts upload preset is not configured');
     }
 
-    console.log('Build Environment:', __DEV__ ? 'Development' : 'Production');
-    console.log('Platform:', Platform.OS);
-    console.log('Config validation - Cloud Name:', CLOUDINARY_CLOUD_NAME);
-    console.log('Config validation - Upload Preset:', UPLOAD_PRESET);
+    console.log('Environment:', {
+        cloudName: CLOUDINARY_CLOUD_NAME,
+        uploadPreset: UPLOAD_PRESET,
+        uploadPresetReceipts: UPLOAD_PRESET_RECEIPTS,
+        buildEnv: __DEV__ ? 'Development' : 'Production',
+        platform: Platform.OS
+    });
 };
 
 export const uploadToCloudinary = async (uri: string): Promise<string | null> => {
     try {
         validateConfig();
-
-        console.log('Initial file URI:', uri);
+        console.log('Starting upload process for:', uri);
 
         const fileInfo = await FileSystem.getInfoAsync(uri);
         console.log('File info:', fileInfo);
 
         if (!fileInfo.exists) {
-            console.error('File does not exist at path:', uri);
-            return null;
+            throw new Error(`File does not exist at path: ${uri}`);
         }
 
         let finalUri = uri;
@@ -53,21 +54,21 @@ export const uploadToCloudinary = async (uri: string): Promise<string | null> =>
             finalUri = `file://${uri}`;
         }
 
+        console.log('Reading file as base64...');
         const base64 = await FileSystem.readAsStringAsync(finalUri, {
             encoding: FileSystem.EncodingType.Base64,
         });
 
         const fileExtension = finalUri.split('.').pop()?.toLowerCase() || '';
         const mimeType = getMimeType(fileExtension);
-
-        console.log('Preparing upload with mime type:', mimeType);
+        console.log('File type:', { extension: fileExtension, mimeType });
 
         const formData = new FormData();
         formData.append('file', `data:${mimeType};base64,${base64}`);
         formData.append('upload_preset', UPLOAD_PRESET!);
 
         const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
-        console.log('Starting upload to:', uploadUrl);
+        console.log('Uploading to Cloudinary...');
 
         const response = await fetch(uploadUrl, {
             method: 'POST',
@@ -79,39 +80,44 @@ export const uploadToCloudinary = async (uri: string): Promise<string | null> =>
         });
 
         const responseText = await response.text();
-        console.log('Raw response:', responseText);
+        console.log('Cloudinary response status:', response.status);
 
         if (!response.ok) {
-            console.error('Upload failed with status:', response.status);
-            console.error('Response text:', responseText);
-            throw new Error(`Upload failed: ${response.status} - ${responseText}`);
+            throw new Error(`Upload failed (${response.status}): ${responseText}`);
         }
 
-        const data = JSON.parse(responseText);
-        console.log('Upload successful:', data.secure_url);
-        return data.secure_url;
+        try {
+            const data = JSON.parse(responseText);
+            console.log('Upload successful:', data.secure_url);
+            return data.secure_url;
+        } catch (parseError) {
+            throw new Error(`Failed to parse response: ${responseText}`);
+        }
 
     } catch (error) {
-        console.error('Detailed upload error:', error);
-        if (error instanceof Error) {
-            console.error('Error stack:', error.stack);
-        }
-        return null;
+        console.error('Upload error details:', {
+            error: error instanceof Error ? {
+                message: error.message,
+                stack: error.stack
+            } : 'Unknown error',
+            uri: uri,
+            cloudName: CLOUDINARY_CLOUD_NAME,
+            buildEnv: __DEV__ ? 'Development' : 'Production'
+        });
+        throw error;
     }
 };
 
 export const uploadReceiptToCloudinary = async (uri: string): Promise<{ url: string; publicId: string } | null> => {
     try {
         validateConfig();
-
-        console.log('Initial receipt file URI:', uri);
+        console.log('Starting receipt upload for:', uri);
 
         const fileInfo = await FileSystem.getInfoAsync(uri);
         console.log('Receipt file info:', fileInfo);
 
         if (!fileInfo.exists) {
-            console.error('Receipt file does not exist at path:', uri);
-            return null;
+            throw new Error(`Receipt file does not exist at path: ${uri}`);
         }
 
         let finalUri = uri;
@@ -119,14 +125,14 @@ export const uploadReceiptToCloudinary = async (uri: string): Promise<{ url: str
             finalUri = `file://${uri}`;
         }
 
+        console.log('Reading receipt as base64...');
         const base64 = await FileSystem.readAsStringAsync(finalUri, {
             encoding: FileSystem.EncodingType.Base64,
         });
 
         const fileExtension = finalUri.split('.').pop()?.toLowerCase() || '';
         const mimeType = getMimeType(fileExtension);
-
-        console.log('Preparing receipt upload with mime type:', mimeType);
+        console.log('Receipt file type:', { extension: fileExtension, mimeType });
 
         const formData = new FormData();
         formData.append('file', `data:${mimeType};base64,${base64}`);
@@ -134,7 +140,7 @@ export const uploadReceiptToCloudinary = async (uri: string): Promise<{ url: str
         formData.append('folder', 'OmMotors/Receipts');
 
         const uploadUrl = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`;
-        console.log('Starting receipt upload to:', uploadUrl);
+        console.log('Uploading receipt to Cloudinary...');
 
         const response = await fetch(uploadUrl, {
             method: 'POST',
@@ -146,26 +152,36 @@ export const uploadReceiptToCloudinary = async (uri: string): Promise<{ url: str
         });
 
         const responseText = await response.text();
-        console.log('Raw receipt response:', responseText);
+        console.log('Cloudinary receipt response status:', response.status);
 
         if (!response.ok) {
-            console.error('Receipt upload failed with status:', response.status);
-            console.error('Response text:', responseText);
-            throw new Error(`Receipt upload failed: ${response.status} - ${responseText}`);
+            throw new Error(`Receipt upload failed (${response.status}): ${responseText}`);
         }
 
-        const data = JSON.parse(responseText);
-        console.log('Receipt upload successful:', data.secure_url);
-        return {
-            url: data.secure_url,
-            publicId: data.public_id
-        };
+        try {
+            const data = JSON.parse(responseText);
+            console.log('Receipt upload successful:', {
+                url: data.secure_url,
+                publicId: data.public_id
+            });
+            return {
+                url: data.secure_url,
+                publicId: data.public_id
+            };
+        } catch (parseError) {
+            throw new Error(`Failed to parse receipt response: ${responseText}`);
+        }
 
     } catch (error) {
-        console.error('Detailed receipt upload error:', error);
-        if (error instanceof Error) {
-            console.error('Error stack:', error.stack);
-        }
-        return null;
+        console.error('Receipt upload error details:', {
+            error: error instanceof Error ? {
+                message: error.message,
+                stack: error.stack
+            } : 'Unknown error',
+            uri: uri,
+            cloudName: CLOUDINARY_CLOUD_NAME,
+            buildEnv: __DEV__ ? 'Development' : 'Production'
+        });
+        throw error;
     }
 };
