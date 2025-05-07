@@ -17,6 +17,9 @@ export interface User {
 }
 
 export type Load = {
+    [x: string]: any;
+    bodyType: any;
+    products: any;
     date(date: any): unknown;
     address: any;
     location: ReactNode;
@@ -26,8 +29,8 @@ export type Load = {
     receiptUrl: any;
     email: any;
     _id: Id<'loads'>;
-    currentLocation: string;
-    destinationLocation: string;
+    currentLocations: string[];
+    destinationLocations: string[];
     weight: number;
     weightUnit: 'kg' | 'ton';
     truckLength: number;

@@ -9,14 +9,16 @@ type UploadResult = {
 
 export const addLoad = mutation({
   args: {
-    currentLocation: v.string(),
-    destinationLocation: v.string(),
+    currentLocations: v.array(v.string()),
+    destinationLocations: v.array(v.string()),
     weight: v.number(),
     weightUnit: v.union(v.literal('kg'), v.literal('ton')),
     truckLength: v.number(),
     lengthUnit: v.union(v.literal('m'), v.literal('ft')),
     contactNumber: v.string(),
     staffContactNumber: v.string(),
+    bodyType: v.union(v.literal('open body'), v.literal('covered'), v.literal('flatbed')),
+    products: v.string(),
   },
   async handler(ctx, args) {
     const load = await ctx.db.insert('loads', {
@@ -58,11 +60,10 @@ export const getLoads = query({
     }
 
     if (args.location) {
-      query = query.filter((q) =>
-        q.or(
-          q.eq(q.field('currentLocation'), args.location),
-          q.eq(q.field('destinationLocation'), args.location)
-        )
+      const loads = await query.collect();
+      return loads.filter(load => 
+        load.currentLocations.includes(args.location) || 
+        load.destinationLocations.includes(args.location)
       );
     }
 
@@ -99,14 +100,16 @@ const cleanStorageId = (storageId: string): string => {
 export const updateLoad = mutation({
   args: {
     loadId: v.id('loads'),
-    currentLocation: v.string(),
-    destinationLocation: v.string(),
+    currentLocations: v.array(v.string()),
+    destinationLocations: v.array(v.string()),
     weight: v.number(),
     weightUnit: v.union(v.literal('kg'), v.literal('ton')),
     truckLength: v.number(),
     lengthUnit: v.union(v.literal('m'), v.literal('ft')),
     contactNumber: v.string(),
     staffContactNumber: v.string(),
+    bodyType: v.union(v.literal('open body'), v.literal('covered'), v.literal('flatbed')),
+    products: v.string(),
   },
   async handler(ctx, args) {
     const { loadId, ...updateData } = args;
@@ -120,6 +123,7 @@ export const updateLoad = mutation({
     return await ctx.db.get(loadId);
   },
 });
+
 
 export const generateStandaloneUploadUrl = mutation({
   args: {},

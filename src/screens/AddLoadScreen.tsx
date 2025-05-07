@@ -19,6 +19,7 @@ import {
   ImageBackground,
   Alert,
   ActivityIndicator,
+  TouchableOpacity,
 } from "react-native";
 
 type NotificationSubscription = {
@@ -26,30 +27,34 @@ type NotificationSubscription = {
 };
 
 interface FormData {
-  currentLocation: string;
-  destinationLocation: string;
+  currentLocations: string[];
+  destinationLocations: string[];
   weight: string;
   weightUnit: "kg" | "ton";
   truckLength: string;
   lengthUnit: "m" | "ft";
   contactNumber: string;
   staffContactNumber: string;
+  bodyType: "open body" | "covered" | "flatbed";
+  products: string;
 }
 
 export const AddLoadScreen = ({ navigation }: { navigation: any }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [expoPushToken, setExpoPushToken] = useState("");
+  const [error, setError] = useState("");
   const [formData, setFormData] = useState<FormData>({
-    currentLocation: "",
-    destinationLocation: "",
+    currentLocations: [""],
+    destinationLocations: [""],
     weight: "",
     weightUnit: "kg",
     truckLength: "",
     lengthUnit: "ft",
     contactNumber: "",
     staffContactNumber: "",
+    bodyType: "open body",
+    products: "",
   });
-  const [error, setError] = useState("");
 
   const notificationListener = useRef<NotificationSubscription | null>(null);
   const responseListener = useRef<NotificationSubscription | null>(null);
@@ -86,9 +91,65 @@ export const AddLoadScreen = ({ navigation }: { navigation: any }) => {
     };
   }, []);
 
+  const addLocationField = () => {
+    setFormData((prev) => ({
+      ...prev,
+      currentLocations: [...prev.currentLocations, ""],
+    }));
+  };
+
+  const removeLocationField = (index: number) => {
+    if (formData.currentLocations.length > 1) {
+      setFormData((prev) => ({
+        ...prev,
+        currentLocations: prev.currentLocations.filter((_, i) => i !== index),
+      }));
+    }
+  };
+
+  const updateLocation = (index: number, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      currentLocations: prev.currentLocations.map((loc, i) =>
+        i === index ? value : loc
+      ),
+    }));
+  };
+
+  const addDestinationLocationField = () => {
+    setFormData((prev) => ({
+      ...prev,
+      destinationLocations: [...prev.destinationLocations, ""],
+    }));
+  };
+
+  const removeDestinationLocationField = (index: number) => {
+    if (formData.destinationLocations.length > 1) {
+      setFormData((prev) => ({
+        ...prev,
+        destinationLocations: prev.destinationLocations.filter(
+          (_, i) => i !== index
+        ),
+      }));
+    }
+  };
+
+  const updateDestinationLocation = (index: number, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      destinationLocations: prev.destinationLocations.map((loc, i) =>
+        i === index ? value : loc
+      ),
+    }));
+  };
+
   const validateForm = () => {
-    if (!formData.currentLocation || !formData.destinationLocation) {
-      setError("Location fields are required");
+    if (formData.currentLocations.some((loc) => !loc.trim())) {
+      setError("All current location fields are required");
+      return false;
+    }
+    if (formData.destinationLocations.some((loc) => !loc.trim())) {
+      setError("All destination location fields are required");
       return false;
     }
     if (!formData.weight || !formData.truckLength) {
@@ -97,6 +158,10 @@ export const AddLoadScreen = ({ navigation }: { navigation: any }) => {
     }
     if (!formData.contactNumber || !formData.staffContactNumber) {
       setError("Contact information is required");
+      return false;
+    }
+    if (!formData.bodyType || !formData.products) {
+      setError("Body type and products are required");
       return false;
     }
     return true;
@@ -113,24 +178,40 @@ export const AddLoadScreen = ({ navigation }: { navigation: any }) => {
       }
 
       const newLoad = await addLoad({
-        currentLocation: formData.currentLocation,
-        destinationLocation: formData.destinationLocation,
+        currentLocations: formData.currentLocations,
+        destinationLocations: formData.destinationLocations,
         weight: parseFloat(formData.weight),
-        truckLength: parseFloat(formData.truckLength),
         weightUnit: formData.weightUnit,
+        truckLength: parseFloat(formData.truckLength),
         lengthUnit: formData.lengthUnit,
         contactNumber: formData.contactNumber,
         staffContactNumber: formData.staffContactNumber,
+        bodyType: formData.bodyType,
+        products: formData.products,
       });
 
+      // Send notifications to all users
       if (userTokens && userTokens.length > 0) {
-        await sendPushNotifications(userTokens, formData);
+        try {
+          await sendPushNotifications(userTokens, {
+            ...formData,
+            weight: parseFloat(formData.weight),
+            truckLength: parseFloat(formData.truckLength),
+          });
+          console.log("Successfully sent notifications to all users");
+        } catch (error) {
+          console.error("Error sending notifications:", error);
+          // Don't throw error here, as the load was already added successfully
+        }
+      } else {
+        console.log("No user tokens available for notifications");
       }
 
+      // Schedule local notification for the current user
       await Notifications.scheduleNotificationAsync({
         content: {
           title: "New Load Added! 🚛",
-          body: `Load from ${formData.currentLocation} to ${formData.destinationLocation} has been added.`,
+          body: `Load from ${formData.currentLocations.join(" → ")} to ${formData.destinationLocations.join(" → ")} has been added.`,
           data: { ...formData },
         },
         trigger: null,
@@ -159,29 +240,73 @@ export const AddLoadScreen = ({ navigation }: { navigation: any }) => {
             <Text style={styles.header}>Add Load</Text>
             {error ? <Text style={styles.error}>{error}</Text> : null}
 
-            <View style={styles.formGroup}>
-              <TextInput
-                style={styles.input}
-                placeholder="Current Location"
-                value={formData.currentLocation}
-                onChangeText={(value) =>
-                  setFormData({ ...formData, currentLocation: value })
-                }
-                editable={!isLoading}
-              />
-            </View>
+            {formData.currentLocations.map((location, index) => (
+              <View key={index} style={styles.locationContainer}>
+                <View style={styles.locationInputContainer}>
+                  <TextInput
+                    style={[styles.input, styles.flex1]}
+                    placeholder={`Current Location ${index + 1}`}
+                    value={location}
+                    onChangeText={(value) => updateLocation(index, value)}
+                    editable={!isLoading}
+                  />
+                  {formData.currentLocations.length > 1 && (
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => removeLocationField(index)}
+                      disabled={isLoading}
+                    >
+                      <Text style={styles.removeButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
 
-            <View style={styles.formGroup}>
-              <TextInput
-                style={styles.input}
-                placeholder="Destination Location"
-                value={formData.destinationLocation}
-                onChangeText={(value) =>
-                  setFormData({ ...formData, destinationLocation: value })
-                }
-                editable={!isLoading}
-              />
-            </View>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={addLocationField}
+              disabled={isLoading}
+            >
+              <Text style={styles.addButtonText}>
+                + Add Another Current Location
+              </Text>
+            </TouchableOpacity>
+
+            {formData.destinationLocations.map((location, index) => (
+              <View key={index} style={styles.locationContainer}>
+                <View style={styles.locationInputContainer}>
+                  <TextInput
+                    style={[styles.input, styles.flex1]}
+                    placeholder={`Destination Location ${index + 1}`}
+                    value={location}
+                    onChangeText={(value) =>
+                      updateDestinationLocation(index, value)
+                    }
+                    editable={!isLoading}
+                  />
+                  {formData.destinationLocations.length > 1 && (
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() => removeDestinationLocationField(index)}
+                      disabled={isLoading}
+                    >
+                      <Text style={styles.removeButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={addDestinationLocationField}
+              disabled={isLoading}
+            >
+              <Text style={styles.addButtonText}>
+                + Add Another Destination Location
+              </Text>
+            </TouchableOpacity>
 
             <View style={[styles.formGroup, styles.row]}>
               <TextInput
@@ -229,6 +354,33 @@ export const AddLoadScreen = ({ navigation }: { navigation: any }) => {
                 <Picker.Item label="m" value="m" />
                 <Picker.Item label="ft" value="ft" />
               </Picker>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Picker
+                selectedValue={formData.bodyType}
+                style={[styles.input, { height: 60 }]}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, bodyType: value })
+                }
+                enabled={!isLoading}
+              >
+                <Picker.Item label="Open Body" value="open body" />
+                <Picker.Item label="Covered" value="covered" />
+                <Picker.Item label="Flatbed" value="flatbed" />
+              </Picker>
+            </View>
+
+            <View style={styles.formGroup}>
+              <TextInput
+                style={styles.input}
+                placeholder="Products"
+                value={formData.products}
+                onChangeText={(value) =>
+                  setFormData({ ...formData, products: value })
+                }
+                editable={!isLoading}
+              />
             </View>
 
             <View style={styles.formGroup}>
@@ -339,5 +491,39 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: theme.spacing.md,
+  },
+  locationContainer: {
+    marginBottom: theme.spacing.md,
+  },
+  locationInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  removeButton: {
+    marginLeft: theme.spacing.sm,
+    padding: theme.spacing.sm,
+    borderRadius: 20,
+    backgroundColor: theme.colors.error,
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeButtonText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  addButton: {
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    marginBottom: theme.spacing.md,
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
   },
 });

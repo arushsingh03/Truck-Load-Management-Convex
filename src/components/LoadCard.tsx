@@ -80,12 +80,16 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       !isNaN(editedLoad.truckLength) && editedLoad.truckLength > 0;
 
     return (
-      editedLoad.currentLocation.trim() !== "" &&
-      editedLoad.destinationLocation.trim() !== "" &&
+      editedLoad.currentLocations.every((loc: string) => loc.trim() !== "") &&
+      editedLoad.destinationLocations.every(
+        (loc: string) => loc.trim() !== ""
+      ) &&
       isValidWeight &&
       isValidLength &&
       isValidContactNumber &&
-      isValidStaffContactNumber
+      isValidStaffContactNumber &&
+      editedLoad.bodyType.trim() !== "" &&
+      editedLoad.products.trim() !== ""
     );
   }, [editedLoad]);
 
@@ -115,7 +119,7 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
       const result = await DocumentPicker.getDocumentAsync({
         type: ["application/pdf", "image/*"],
-        copyToCacheDirectory: true, 
+        copyToCacheDirectory: true,
       });
 
       console.log("[LoadCard] Document picker result:", result);
@@ -203,14 +207,16 @@ export const LoadCard: React.FC<LoadCardProps> = ({
       setIsEditing(true);
       await updateLoad({
         loadId: load._id,
-        currentLocation: editedLoad.currentLocation,
-        destinationLocation: editedLoad.destinationLocation,
+        currentLocations: editedLoad.currentLocations,
+        destinationLocations: editedLoad.destinationLocations,
         weight: editedLoad.weight,
         weightUnit: editedLoad.weightUnit,
         truckLength: editedLoad.truckLength,
         lengthUnit: editedLoad.lengthUnit,
         contactNumber: editedLoad.contactNumber,
         staffContactNumber: editedLoad.staffContactNumber,
+        bodyType: editedLoad.bodyType,
+        products: editedLoad.products,
       });
       setShowEditModal(false);
       onEdit(load._id);
@@ -227,28 +233,14 @@ export const LoadCard: React.FC<LoadCardProps> = ({
     <View style={styles.previewContent}>
       <View style={styles.header}>
         <View style={styles.dateTimeContainer}>
-          <View style={styles.dateTimeItem}>
-            <MaterialIcons
-              name="event"
-              size={20}
-              color={theme.colors.primary}
-            />
-            <Text style={styles.dateTimeText}>
-              {dayjs(load.createdAt).format("MM/DD/YY")}
-            </Text>
-          </View>
+          <Text style={styles.dateTimeText}>
+            {dayjs(load.createdAt).format("MM/DD/YY")}
+          </Text>
           {(isAdmin || load.isOwner) && (
-            <View style={styles.dateTimeItem}>
-              <MaterialIcons
-                name="timer"
-                size={20}
-                color={theme.colors.primary}
-              />
-              <Text style={styles.dateTimeText}>
-                {/* @ts-ignore */}
-                {dayjs(load._creationTime).format("h:mm A")}
-              </Text>
-            </View>
+            <Text style={styles.dateTimeText}>
+              {/* @ts-ignore */}
+              {dayjs(load._creationTime).format("h:mm A")}
+            </Text>
           )}
         </View>
         <TouchableOpacity
@@ -276,34 +268,64 @@ export const LoadCard: React.FC<LoadCardProps> = ({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.locationContainer}>
-        <View style={styles.locationItem}>
-          <MaterialIcons
-            name="location-on"
-            size={24}
-            color={theme.colors.primary}
-          />
-          <View style={styles.locationTextContainer}>
-            <Text style={styles.labelText}>From</Text>
-            <Text style={styles.locationText}>{load.currentLocation}</Text>
-          </View>
+      <View style={styles.locationsGrid}>
+        <View style={styles.locationsColumn}>
+          <Text style={styles.columnTitle}>From</Text>
+          <Text style={styles.locationText} numberOfLines={1}>
+            {load.currentLocations.join(" → ")}
+          </Text>
         </View>
-        <MaterialIcons
-          name="arrow-forward"
-          size={24}
-          color={theme.colors.icon}
-          style={styles.arrowIcon}
-        />
-        <View style={styles.locationItem}>
+
+        <View style={styles.arrowContainer}>
           <MaterialIcons
-            name="location-on"
-            size={24}
+            name={
+              load.currentLocations.length > 1 ||
+              load.destinationLocations.length > 1
+                ? "swap-horiz"
+                : "arrow-forward"
+            }
+            size={20}
+            color={theme.colors.icon}
+            style={styles.arrowIcon}
+          />
+        </View>
+
+        <View style={styles.locationsColumn}>
+          <Text style={styles.columnTitle}>To</Text>
+          <Text style={styles.locationText} numberOfLines={1}>
+            {load.destinationLocations.join(" → ")}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.quickInfo}>
+        <View style={styles.infoItem}>
+          <MaterialIcons
+            name="local-shipping"
+            size={16}
             color={theme.colors.primary}
           />
-          <View style={styles.locationTextContainer}>
-            <Text style={styles.labelText}>To</Text>
-            <Text style={styles.locationText}>{load.destinationLocation}</Text>
-          </View>
+          <Text style={styles.infoText}>
+            {load.weight} {load.weightUnit}
+          </Text>
+        </View>
+        <View style={styles.infoItem}>
+          <MaterialIcons
+            name="straighten"
+            size={16}
+            color={theme.colors.primary}
+          />
+          <Text style={styles.infoText}>
+            {load.truckLength} {load.lengthUnit}
+          </Text>
+        </View>
+        <View style={styles.infoItem}>
+          <MaterialIcons
+            name="local-offer"
+            size={16}
+            color={theme.colors.primary}
+          />
+          <Text style={styles.infoText}>{load.bodyType}</Text>
         </View>
       </View>
     </View>
@@ -329,31 +351,104 @@ export const LoadCard: React.FC<LoadCardProps> = ({
           <ScrollView>
             <Text style={styles.modalTitle}>Edit Load</Text>
 
-            <Text style={styles.inputLabel}>Current Location</Text>
-            <TextInput
-              style={styles.input}
-              value={editedLoad.currentLocation}
-              onChangeText={(text) =>
-                setEditedLoad((prevLoad) => ({
-                  ...prevLoad,
-                  currentLocation: text,
-                }))
-              }
-              placeholder="Enter current location"
-            />
+            {editedLoad.currentLocations.map((location, index) => (
+              <View key={index} style={styles.actionsContainer}>
+                <View style={styles.locationInputContainer}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder={`Current Location ${index + 1}`}
+                    value={location}
+                    onChangeText={(value) =>
+                      setEditedLoad((prevLoad) => ({
+                        ...prevLoad,
+                        currentLocations: prevLoad.currentLocations.map(
+                          (loc, i) => (i === index ? value : loc)
+                        ),
+                      }))
+                    }
+                  />
+                  {editedLoad.currentLocations.length > 1 && (
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() =>
+                        setEditedLoad((prevLoad) => ({
+                          ...prevLoad,
+                          currentLocations: prevLoad.currentLocations.filter(
+                            (_, i) => i !== index
+                          ),
+                        }))
+                      }
+                    >
+                      <Text style={styles.removeButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
 
-            <Text style={styles.inputLabel}>Destination Location</Text>
-            <TextInput
-              style={styles.input}
-              value={editedLoad.destinationLocation}
-              onChangeText={(text) =>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() =>
                 setEditedLoad((prevLoad) => ({
                   ...prevLoad,
-                  destinationLocation: text,
+                  currentLocations: [...prevLoad.currentLocations, ""],
                 }))
               }
-              placeholder="Enter destination location"
-            />
+            >
+              <Text style={styles.addButtonText}>
+                + Add Another Current Location
+              </Text>
+            </TouchableOpacity>
+
+            {editedLoad.destinationLocations.map((location, index) => (
+              <View key={index} style={styles.actionsContainer}>
+                <View style={styles.locationInputContainer}>
+                  <TextInput
+                    style={[styles.input, { flex: 1 }]}
+                    placeholder={`Destination Location ${index + 1}`}
+                    value={location}
+                    onChangeText={(value) =>
+                      setEditedLoad((prevLoad) => ({
+                        ...prevLoad,
+                        destinationLocations: prevLoad.destinationLocations.map(
+                          (loc, i) => (i === index ? value : loc)
+                        ),
+                      }))
+                    }
+                  />
+                  {editedLoad.destinationLocations.length > 1 && (
+                    <TouchableOpacity
+                      style={styles.removeButton}
+                      onPress={() =>
+                        setEditedLoad((prevLoad) => ({
+                          ...prevLoad,
+                          destinationLocations:
+                            prevLoad.destinationLocations.filter(
+                              (_, i) => i !== index
+                            ),
+                        }))
+                      }
+                    >
+                      <Text style={styles.removeButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              </View>
+            ))}
+
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() =>
+                setEditedLoad((prevLoad) => ({
+                  ...prevLoad,
+                  destinationLocations: [...prevLoad.destinationLocations, ""],
+                }))
+              }
+            >
+              <Text style={styles.addButtonText}>
+                + Add Another Destination Location
+              </Text>
+            </TouchableOpacity>
 
             <Text style={styles.inputLabel}>Weight</Text>
             <View style={styles.inputRow}>
@@ -442,6 +537,33 @@ export const LoadCard: React.FC<LoadCardProps> = ({
               keyboardType="phone-pad"
               placeholder="Enter staff contact number"
             />
+
+            <Text style={styles.inputLabel}>Body Type</Text>
+            <TextInput
+              style={styles.input}
+              value={editedLoad.bodyType}
+              onChangeText={(text) =>
+                setEditedLoad((prevLoad) => ({
+                  ...prevLoad,
+                  bodyType: text,
+                }))
+              }
+              placeholder="Enter body type"
+            />
+
+            <Text style={styles.inputLabel}>Products</Text>
+            <TextInput
+              style={styles.input}
+              value={editedLoad.products}
+              onChangeText={(text) =>
+                setEditedLoad((prevLoad) => ({
+                  ...prevLoad,
+                  products: text,
+                }))
+              }
+              placeholder="Enter products"
+            />
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
@@ -503,6 +625,24 @@ export const LoadCard: React.FC<LoadCardProps> = ({
                 <Text style={styles.valueText}>
                   {load.truckLength} {load.lengthUnit}
                 </Text>
+              </View>
+              <View style={styles.detailItem}>
+                <MaterialIcons
+                  name="local-offer"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.labelText}>Body Type</Text>
+                <Text style={styles.valueText}>{load.bodyType}</Text>
+              </View>
+              <View style={styles.detailItem}>
+                <MaterialIcons
+                  name="shopping-cart"
+                  size={24}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.labelText}>Products</Text>
+                <Text style={styles.valueText}>{load.products}</Text>
               </View>
             </View>
 
@@ -614,13 +754,13 @@ export const LoadCard: React.FC<LoadCardProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: theme.spacing.xl,
-    marginVertical: theme.spacing.sm,
+    marginHorizontal: theme.spacing.lg,
+    marginVertical: theme.spacing.xs,
   },
   card: {
     backgroundColor: theme.colors.background,
     borderRadius: 12,
-    padding: theme.spacing.md,
+    padding: theme.spacing.sm,
     borderWidth: 1,
     borderColor: theme.colors.border,
     shadowColor: "#000",
@@ -628,144 +768,169 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    overflow: "hidden",
   },
   cardCollapsed: {
-    paddingBottom: theme.spacing.sm,
+    paddingBottom: theme.spacing.xs,
   },
   previewContent: {
     marginBottom: theme.spacing.xs,
   },
   expandedContent: {
-    marginTop: theme.spacing.md,
+    marginTop: theme.spacing.sm,
     borderTopWidth: 1,
     borderTopColor: theme.colors.border,
-    paddingTop: theme.spacing.md,
+    paddingTop: theme.spacing.sm,
   },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: theme.spacing.sm,
+    marginBottom: theme.spacing.xs,
   },
   dateTimeContainer: {
     flexDirection: "row",
     alignItems: "center",
-  },
-  dateTimeItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginRight: theme.spacing.sm,
+    gap: theme.spacing.xs,
   },
   dateTimeText: {
-    fontSize: 14,
+    fontSize: 12,
     color: theme.colors.text,
-    marginLeft: theme.spacing.xs,
   },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: theme.colors.primary + "20",
-    paddingHorizontal: theme.spacing.sm,
-    paddingVertical: 4,
+    paddingHorizontal: theme.spacing.xs,
+    paddingVertical: 2,
     borderRadius: 12,
-    marginRight: 50,
   },
   noReceiptBadge: {
     backgroundColor: theme.colors.error + "20",
   },
   statusText: {
     color: theme.colors.primary,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: "600",
     marginLeft: 4,
   },
   noReceiptText: {
     color: theme.colors.error,
   },
-  locationContainer: {
+  locationsGrid: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginVertical: theme.spacing.xs,
+    marginBottom: theme.spacing.sm,
+    marginTop: theme.spacing.sm,
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.sm,
   },
-  locationItem: {
+  locationsColumn: {
     flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
   },
-  locationTextContainer: {
-    marginLeft: theme.spacing.xs,
-    flex: 1,
+  columnTitle: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.colors.primary,
+    marginBottom: 2,
+  },
+  locationText: {
+    fontSize: 12,
+    color: theme.colors.text,
+    fontWeight: "500",
+  },
+  arrowContainer: {
+    paddingHorizontal: theme.spacing.xs,
   },
   arrowIcon: {
-    marginHorizontal: theme.spacing.sm,
+    alignSelf: "center",
+  },
+  quickInfo: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: theme.colors.background,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+    padding: theme.spacing.sm,
+  },
+  infoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  infoText: {
+    fontSize: 12,
+    color: theme.colors.text,
   },
   expandIcon: {
     alignSelf: "center",
     marginTop: theme.spacing.xs,
   },
-  labelText: {
-    fontSize: 12,
-    color: theme.colors.icon,
-    marginBottom: 2,
-  },
-  locationText: {
-    fontSize: 14,
-    color: theme.colors.text,
-    fontWeight: "500",
-  },
   detailsContainer: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    marginBottom: theme.spacing.md,
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: theme.spacing.sm,
+    gap: theme.spacing.xs,
   },
   detailItem: {
+    width: "48%",
+    backgroundColor: theme.colors.background,
+    padding: theme.spacing.xs,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     alignItems: "center",
+    marginBottom: theme.spacing.xs,
   },
   valueText: {
-    fontSize: 16,
+    fontSize: 12,
     color: theme.colors.text,
     fontWeight: "600",
-    marginTop: 4,
+    marginTop: 2,
+    textAlign: "center",
   },
   contactContainer: {
-    marginBottom: theme.spacing.md,
+    marginBottom: theme.spacing.sm,
   },
   contactItem: {
     flexDirection: "row",
     justifyContent: "center",
-    padding: theme.spacing.sm,
+    padding: theme.spacing.xs,
     backgroundColor: theme.colors.background,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: theme.colors.border,
-    marginBottom: theme.spacing.sm,
-    width: "100%",
+    marginBottom: theme.spacing.xs,
   },
   contactText: {
     marginLeft: theme.spacing.xs,
     color: theme.colors.text,
-    fontSize: 14,
+    fontSize: 12,
   },
   actionsContainer: {
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
   },
   actionRow: {
     flexDirection: "row",
-    gap: theme.spacing.sm,
+    gap: theme.spacing.xs,
   },
   actionButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 8,
   },
   actionText: {
     marginLeft: 8,
     color: "#FFF",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "600",
   },
   editButton: {
@@ -798,6 +963,11 @@ const styles = StyleSheet.create({
     marginBottom: theme.spacing.lg,
   },
   inputLabel: {
+    fontSize: 14,
+    color: theme.colors.text,
+    marginBottom: theme.spacing.xs,
+  },
+  labelText: {
     fontSize: 14,
     color: theme.colors.text,
     marginBottom: theme.spacing.xs,
@@ -854,5 +1024,36 @@ const styles = StyleSheet.create({
     color: "#FFF",
     fontSize: 16,
     fontWeight: "600",
+  },
+  locationInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  removeButton: {
+    marginLeft: theme.spacing.sm,
+    padding: theme.spacing.sm,
+    borderRadius: 20,
+    backgroundColor: theme.colors.error,
+    width: 30,
+    height: 30,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  removeButtonText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
+  addButton: {
+    padding: theme.spacing.sm,
+    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    marginBottom: theme.spacing.md,
+    alignItems: "center",
+  },
+  addButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "500",
   },
 });
