@@ -9,6 +9,8 @@ import { View, Text, ActivityIndicator, Alert } from "react-native";
 import { ConvexProvider, ConvexReactClient } from "convex/react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { ErrorBoundary } from "./src/components/ErrorBoundary";
+import { useMutation } from "convex/react";
+import { api } from "./convex/_generated/api";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -123,6 +125,8 @@ export default function App() {
   const responseListener = React.useRef<any>();
 
   const initializeAuth = useAuthStore((state) => state.initializeAuth);
+  const user = useAuthStore((state) => state.user);
+  const updatePushToken = useMutation(api.users.updatePushToken);
 
   React.useEffect(() => {
     async function initialize() {
@@ -134,6 +138,14 @@ export default function App() {
 
         const token = await registerForPushNotificationsAsync();
         setExpoPushToken(token);
+
+        // Update push token if user is logged in
+        if (user && token) {
+          await updatePushToken({
+            userId: user.id,
+            pushToken: token,
+          });
+        }
 
         await SplashScreen.hideAsync();
 

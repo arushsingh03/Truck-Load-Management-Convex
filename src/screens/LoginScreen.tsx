@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { useAction } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { Button } from "../components/Button";
 import { useAuthStore } from "../store/authStore";
 import { api } from "../../convex/_generated/api";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { registerForPushNotificationsAsync } from "../utils/notification";
 import {
   View,
   StyleSheet,
@@ -36,6 +37,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
   // @ts-ignore
   const login = useAction(api.auth.login);
+  const updatePushToken = useMutation(api.users.updatePushToken);
   const setUser = useAuthStore((state) => state.setUser);
 
   useEffect(() => {
@@ -88,6 +90,15 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
 
       setIsLoading(true);
       const userData = await login({ phone, password });
+
+      // Register for push notifications and update token
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        await updatePushToken({
+          userId: userData._id,
+          pushToken,
+        });
+      }
 
       await AsyncStorage.setItem("@user_data", JSON.stringify(userData));
 
