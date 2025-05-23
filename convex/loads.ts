@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import { v } from 'convex/values';
-import { mutation, query } from "../convex/_generated/server";
+import { mutation, query } from "./_generated/server";
+import { api } from "./_generated/api";
 
 type UploadResult = {
   uploadUrl: string;
@@ -23,8 +24,27 @@ export const addLoad = mutation({
   async handler(ctx, args) {
     const load = await ctx.db.insert('loads', {
       ...args,
-      createdAt: dayjs().format('YYYY-MM-DD'),
+      createdAt: dayjs().format('YYYY-MM-DD'), // Original createdAt for DB
     });
+
+    // Send notification
+    const allPushTokens = await ctx.runQuery(api.users.getAllPushTokens);
+    if (allPushTokens && allPushTokens.length > 0) {
+      const notificationLoadData = {
+        ...args,
+        id: load, // This 'load' is the ID of the newly inserted load
+        createdAt: dayjs().toISOString(), // More precise timestamp for notification
+        // Ensure all relevant fields from 'args' are included
+        // For example, if your notification needs specific fields:
+        contact: args.contactNumber, // Assuming contactNumber is the one to show
+        // currentLocations, destinationLocations, weight, truckLength are already in args
+      };
+      await ctx.scheduler.runAfter(0, api.notifications.sendNotification, {
+        pushTokens: allPushTokens,
+        loadData: notificationLoadData,
+      });
+    }
+
     return load;
   },
 });
